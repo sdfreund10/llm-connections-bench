@@ -2,7 +2,9 @@ from openrouter import OpenRouter
 from openrouter.components import ResponseFormat, ChatFormatJSONSchemaConfig
 from dotenv import load_dotenv
 import os
-
+import time
+from openrouter.errors import TooManyRequestsResponseError
+# openrouter.errors.toomanyrequestsresponse_error.TooManyRequestsResponseError
 load_dotenv()
 
 
@@ -51,42 +53,14 @@ class OpenAIChat:
                     }
                 }
             }
-
-            #             "type": "object",
-            # "properties": {
-            #     "guess": {"type": "array", "items": {"type": "string"}},
-            #     "reasoning": {"type": "string"},
-            # },
-            # "required": ["guess", "guess"],
-
-# "response_format": {
-#     "type": "json_schema",
-#     "json_schema": {
-#       "name": "weather",
-#       "strict": true,
-#       "schema": {
-#         "type": "object",
-#         "properties": {
-#           "location": {
-#             "type": "string",
-#             "description": "City or location name"
-#           },
-#           "temperature": {
-#             "type": "number",
-#             "description": "Temperature in Celsius"
-#           },
-#           "conditions": {
-#             "type": "string",
-#             "description": "Weather conditions description"
-#           }
-#         },
-#         "required": ["location", "temperature", "conditions"],
-#         "additionalProperties": false
-#       }
-#     }
     def send(self, message):
         self.messages.append({"role": "user", "content": message})
-        return self._send_messages()
+        try:
+            return self._send_messages()
+        except TooManyRequestsResponseError as e:
+            print("Rate limit exceeded, resting for 15 seconds...")
+            time.sleep(15)
+            return self._send_messages()
 
     def _send_messages(self):
         with OpenRouter(

@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-llm-connections = "llm_connections:main"
+llm-connections = "llm_connections.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.12.8,<0.13.0"]

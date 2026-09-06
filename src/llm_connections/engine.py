@@ -1,7 +1,8 @@
-from llm_connections.llm import OpenAIChat
-from llm_connections.game import Game
 import datetime
 import json
+from llm_connections.llm import OpenAIChat
+from llm_connections.game import Game, InvalidGuessError
+from llm_connections.log import start_run, log_guess, complete_run
 
 SYSTEM_PROMPT = '''
 You are trying to solve a game of Connections.
@@ -29,15 +30,9 @@ def _serialize_game(game: Game) -> str:
     serialized += f"Uncategorized: {game.unsolved_entries()}\n"
     return serialized
 
-# LOG_FILE = 'data/games.json'
-# def log_guess(date: datetime.date, llm_model: str, guess: dict):
-#     with open(LOG_FILE, 'w') as f:
-#         data = json.load(LOG_FILE)
-#         data[date][llm_model].append(guess)
-#         f.write(json.dumps(data), indent=4)
 
-
-def run_game(date: datetime.date, model='openai/gpt-4.1'):
+def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False):
+    start_run(date, model, force=force)
     game = Game.load(date)
     chat = OpenAIChat(
         model=model,
@@ -51,22 +46,20 @@ def run_game(date: datetime.date, model='openai/gpt-4.1'):
             "required": ["guess", "reasoning"],
         }
     )
+    # TODO: Maybe log latency?
+    invalid_guesses = 0
     while not game.is_solved() and not game.is_lost():
         guess = chat.send(f"{_serialize_game(game)}")
         guess = json.loads(guess)
-        result = game.check_guess(guess['guess'])
+        try:
+            result = game.check_guess(guess['guess'])
+        except InvalidGuessError as e:
+            chat.send(f"Invalid guess: {e}")
+            invalid_guesses += 1
+            continue
         guess['success'] = result is not None
-        # log_guess(date, model, guess)
-        print(guess)
-    if game.is_solved():
-        print("Game solved!")
-    else:
-        print("Game lost!")
+        log_guess(date, model, guess)
 
-    # while not game.is_solved() and not game.is_lost():
-
-    # Feed instructions on how to play to LLM
-    # Feed initial game state to LLM
-    # On each turn, feed result of guess and new game state
-    # Log guess each & reasoning, and the result
-    # At the end, log the final game state - solved & mistakes #
+    outcome = "solved" if game.is_solved() else "lost"
+    complete_run(date, model, outcome=outcome, mistakes=game.mistakes, invalid_guesses=invalid_guesses)
+    print(f"[{date}] Game {outcome}! ({game.mistakes} mistakes)")

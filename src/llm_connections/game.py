@@ -2,7 +2,7 @@
 import os
 import json
 import requests
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 CONNECTIONS_URL = "https://github.com/Eyefyre/NYT-Connections-Answers/raw/main/connections.json"
@@ -71,7 +71,7 @@ class Game:
         return all(group.solved for group in self.groups)
 
     def is_lost(self):
-        return self.mistakes >= 3
+        return self.mistakes > 3
 
     def day(self):
         return self.date.date()
@@ -100,7 +100,7 @@ class Game:
     # Otherwise returns None
     # TODO: Handle 1-away guesses
     def check_guess(self, guess: list[str]):
-        if self.mistakes >= 3:
+        if self.mistakes > 3:
             raise InvalidGuessError("You have made too many mistakes. You lose.")
 
         self._validate_guess(guess)
@@ -148,15 +148,15 @@ class Game:
             games = []
             for entry in entries:
                 game_date = datetime.strptime(entry["date"], "%Y-%m-%d")
-                if game_date < datetime(2026, 9, 1):
+                if game_date < datetime(2026, 8, 1):
                     continue
                 games.append(Game(entry))
             return games
 
     @classmethod
-    def load(cls, date: datetime.date):
+    def load(cls, date: date | datetime):
         all_games = cls.load_all()
-        day = date.date()
+        day = date.date() if isinstance(date, datetime) else date
         game = next((g for g in all_games if g.day() == day), None)
         if not game:
             raise ValueError(f"Game not found for date: {day}")
