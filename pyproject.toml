@@ -1,0 +1,29 @@
+[project]
+name = "llm-connections"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Steve Freund", email = "sdfreund10@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "dotenv>=0.9.9",
+    "openrouter>=1.1.126",
+    "requests>=2.34.2",
+]
+
+[project.scripts]
+llm-connections = "llm_connections:main"
+
+[build-system]
+requires = ["uv_build>=0.12.8,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
