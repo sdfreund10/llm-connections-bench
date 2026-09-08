@@ -87,6 +87,8 @@ def complete_run(
     outcome: str,
     mistakes: int,
     invalid_guesses: int,
+    solved_groups: int,
+    llm_wait_s: float,
 ) -> None:
     data = _load_log()
     date_key = _date_key(date)
@@ -100,6 +102,8 @@ def complete_run(
     run["outcome"] = outcome
     run["mistakes"] = mistakes
     run["invalid_guesses"] = invalid_guesses
+    run["solved_groups"] = solved_groups
+    run["llm_wait_s"] = llm_wait_s
     _save_log(data)
 
 

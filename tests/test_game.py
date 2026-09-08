@@ -159,12 +159,12 @@ class TestGame:
         with pytest.raises(FileNotFoundError, match="Connections file not found"):
             Game.load_all()
 
-    def test_load_all_skips_games_before_september_2026(self, connections_path):
+    def test_load_all_skips_games_before_august_2026(self, connections_path):
         connections_path.write_text(
             json.dumps(
                 [
-                    {"id": 1, "date": "2026-08-31", "answers": SAMPLE_ANSWERS},
-                    {"id": 2, "date": "2026-09-01", "answers": SAMPLE_ANSWERS},
+                    {"id": 1, "date": "2026-07-31", "answers": SAMPLE_ANSWERS},
+                    {"id": 2, "date": "2026-08-01", "answers": SAMPLE_ANSWERS},
                     {"id": 3, "date": "2026-09-02", "answers": SAMPLE_ANSWERS},
                 ]
             )
@@ -173,7 +173,7 @@ class TestGame:
         games = Game.load_all()
 
         assert [game.id for game in games] == [2, 3]
-        assert games[0].date == datetime(2026, 9, 1)
+        assert games[0].date == datetime(2026, 8, 1)
 
     def test_load_loads_game_for_date(self, connections_path):
         connections_path.write_text(
@@ -264,6 +264,13 @@ class TestValidateGuess:
             match="Entry already used in a solved group:",
         ):
             game._validate_guess(["HAIL", "BUCKS", "HEAT", "JAZZ"])
+
+    def test_rejects_duplicate_guess(self):
+        game = Game(SAMPLE_GAME)
+        guess = [group["members"][0] for group in SAMPLE_ANSWERS]
+        game._validate_guess(guess)
+        with pytest.raises(InvalidGuessError, match="Duplicate guess:"):
+            game._validate_guess(guess)
 
 
 class TestCheckGuess:

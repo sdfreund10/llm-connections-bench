@@ -66,6 +66,7 @@ class Game:
         self.date: datetime = datetime.strptime(data["date"], "%Y-%m-%d")
         self.groups: list[Group] = [Group(answer) for answer in data["answers"]]
         self.mistakes: int = 0
+        self.guesses: list[set[str]] = []
 
     def is_solved(self):
         return all(group.solved for group in self.groups)
@@ -133,9 +134,15 @@ class Game:
             if entry in self.solved_entries():
                 solved_entries.append(entry)
 
+
         if len(solved_entries) > 0:
             raise InvalidGuessError(f"Entry already used in a solved group: {solved_entries}")
 
+        # Validate the guess is not a duplicate of a previous guess
+        if set(guess) in self.guesses:
+            raise InvalidGuessError(f"Duplicate guess: {guess}")
+
+        self.guesses.append(set(guess))
         return True
 
     @classmethod

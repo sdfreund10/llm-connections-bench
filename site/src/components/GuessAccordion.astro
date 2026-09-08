@@ -1,0 +1,39 @@
+---
+import type { Guess } from "../lib/types";
+import { CATEGORY_COLORS, groupColorIndex } from "../lib/colors";
+
+interface Props {
+  guesses: Guess[];
+  guessIndex: number;
+  groupIndex?: number;
+}
+
+const { guesses, guessIndex, groupIndex } = Astro.props;
+const guess = guesses[guessIndex];
+const color =
+  guess.success && groupIndex != null
+    ? CATEGORY_COLORS[groupColorIndex(groupIndex)]
+    : null;
+const id = `guess-${guessIndex}`;
+---
+
+<details class="guess-accordion">
+  <summary class="guess-accordion__summary">
+    <span class="guess-accordion__num">Guess {guessIndex + 1}</span>
+    <span class="guess-accordion__words">{guess.guess.join(" · ")}</span>
+    {
+      guess.success ? (
+        <span class="guess-accordion__result guess-accordion__result--ok">Correct</span>
+      ) : (
+        <span class="guess-accordion__result guess-accordion__result--miss">Wrong</span>
+      )
+    }
+  </summary>
+  <div
+    class:list={["guess-accordion__body", color && "guess-accordion__body--categorized"]}
+    id={id}
+    style={color ? `--category-color: ${color.bg}` : undefined}
+  >
+    <p class="guess-accordion__reasoning">{guess.reasoning}</p>
+  </div>
+</details>

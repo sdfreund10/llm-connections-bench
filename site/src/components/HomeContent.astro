@@ -1,0 +1,42 @@
+---
+import DateCard from "./DateCard.astro";
+import StandingsTable from "./StandingsTable.astro";
+import Pagination from "./Pagination.astro";
+import type { DateSummary, ModelStats } from "../lib/types";
+
+interface Props {
+  dates: DateSummary[];
+  stats: ModelStats[];
+  currentPage: number;
+  totalPages: number;
+}
+
+const { dates, stats, currentPage, totalPages } = Astro.props;
+---
+
+<p class="home-intro">
+  Recent puzzle days and how each language model performed. Pick a date for the full board
+  and guess-by-guess replay.
+</p>
+
+<ul class="date-list">
+  {
+    dates.map((summary) => (
+      <li>
+        <DateCard summary={summary} />
+      </li>
+    ))
+  }
+</ul>
+
+{
+  dates.length === 0 && (
+    <p class="standings__empty">No runs logged yet. Use the CLI to play some games.</p>
+  )
+}
+
+<Pagination currentPage={currentPage} totalPages={totalPages} />
+
+<div id="standings" class="home-standings">
+  <StandingsTable stats={stats} />
+</div>

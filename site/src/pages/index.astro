@@ -1,0 +1,14 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import HomeContent from "../components/HomeContent.astro";
+import { getPaginatedDates, getHomePageCount, getModelStats } from "../lib/data";
+
+const currentPage = 1;
+const totalPages = getHomePageCount();
+const dates = getPaginatedDates(currentPage);
+const stats = getModelStats();
+---
+
+<BaseLayout showNav>
+  <HomeContent {dates} {stats} {currentPage} {totalPages} />
+</BaseLayout>

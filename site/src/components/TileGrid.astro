@@ -1,0 +1,79 @@
+---
+import { CATEGORY_COLORS } from "../lib/colors";
+import type { ResultBoard } from "../lib/board";
+
+interface Props {
+  /** Flat shuffled list for mini home cards */
+  words?: string[];
+  /** NYT-style result layout for model boards */
+  board?: ResultBoard;
+  size?: "mini" | "full";
+}
+
+const { words, board, size = "full" } = Astro.props;
+
+if (!words && !board) {
+  throw new Error("TileGrid requires either words or board");
+}
+---
+
+{
+  board && size === "full" ? (
+    <div class="tile-board tile-board--full" role="group" aria-label="Puzzle board">
+      {
+        board.solvedRows.length > 0 && (
+          <div class="tile-board__solved">
+            {
+              board.solvedRows.map((row) => {
+                const c = CATEGORY_COLORS[row.categoryIndex];
+                return (
+                  <div class="tile-row">
+                    {
+                      row.words.map((word) => (
+                        <div
+                          class="tile tile--solved-category"
+                          style={`--tile-bg: ${c.bg}; --tile-text: ${c.text}`}
+                        >
+                          <span class="tile__text">{word}</span>
+                        </div>
+                      ))
+                    }
+                  </div>
+                );
+              })
+            }
+          </div>
+        )
+      }
+      {
+        board.unsolvedWords.length > 0 && (
+          <div
+            class:list={[
+              "tile-grid",
+              "tile-grid--full",
+              board.solvedRows.length > 0 && "tile-grid--remaining",
+            ]}
+          >
+            {
+              board.unsolvedWords.map((word) => (
+                <div class="tile">
+                  <span class="tile__text">{word}</span>
+                </div>
+              ))
+            }
+          </div>
+        )
+      }
+    </div>
+  ) : (
+    <div class:list={["tile-grid", `tile-grid--${size}`]} role="group" aria-label="Puzzle board">
+      {
+        (words ?? []).map((word) => (
+          <div class="tile">
+            <span class="tile__text">{word}</span>
+          </div>
+        ))
+      }
+    </div>
+  )
+}

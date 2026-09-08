@@ -1,0 +1,55 @@
+---
+import type { ModelStats } from "../lib/types";
+import { shortModelName } from "../lib/data";
+
+interface Props {
+  stats: ModelStats[];
+}
+
+const { stats } = Astro.props;
+
+function pct(n: number): string {
+  return `${Math.round(n * 100)}%`;
+}
+---
+
+<section class="standings" aria-labelledby="standings-heading">
+  <h2 id="standings-heading" class="standings__heading">Season standings</h2>
+  {
+    stats.length === 0 ? (
+      <p class="standings__empty">No completed runs yet.</p>
+    ) : (
+      <div class="standings__table-wrap">
+        <table class="standings__table">
+          <thead>
+            <tr>
+              <th scope="col">Model</th>
+              <th scope="col">Win rate</th>
+              <th scope="col">Avg mistakes</th>
+              <th scope="col">Games</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              stats.map((row) => (
+                <tr>
+                  <td class="standings__model" title={row.model}>
+                    {shortModelName(row.model)}
+                  </td>
+                  <td>
+                    <span class="standings__win">{pct(row.winRate)}</span>
+                    <span class="standings__record">
+                      {row.solved}W / {row.lost}L
+                    </span>
+                  </td>
+                  <td class="standings__num">{row.avgMistakes.toFixed(1)}</td>
+                  <td class="standings__num">{row.games}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+</section>

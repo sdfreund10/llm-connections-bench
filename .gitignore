@@ -13,4 +13,14 @@ wheels/
 # data
 data/
 
+# Static site
+site/node_modules/
+site/dist/
+
 .env
+
+
+# dev 
+.cursor/
+.vscode/
+.impeccable/

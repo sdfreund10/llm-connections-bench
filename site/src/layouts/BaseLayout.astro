@@ -1,0 +1,66 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  showNav?: boolean;
+}
+
+const {
+  title = "llm-connections",
+  description = "How well do language models play Connections? Daily results and season standings.",
+  showNav = false,
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600;700;800&family=Caprasimo&display=swap"
+      rel="stylesheet"
+    />
+    <title>{title}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <div class="site-header__brand">
+          <a class="site-logo" href="/">
+            <span class="site-logo__mark" aria-hidden="true">4</span>
+            <span class="site-logo__text">llm-connections</span>
+          </a>
+          <p class="site-tagline">Language models vs. the daily word puzzle</p>
+        </div>
+        {
+          showNav && (
+            <nav class="site-nav" aria-label="Primary">
+              <a class="site-nav__link" href="/">Results</a>
+              <a class="site-nav__link" href="/#standings">Standings</a>
+            </nav>
+          )
+        }
+      </div>
+    </header>
+    <main id="main">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <p>
+        Unofficial benchmark — not affiliated with The New York Times or Connections.
+        Puzzle data from
+        <a href="https://github.com/Eyefyre/NYT-Connections-Answers" rel="noopener noreferrer"
+          >Eyefyre/NYT-Connections-Answers</a
+        >.
+      </p>
+    </footer>
+  </body>
+</html>

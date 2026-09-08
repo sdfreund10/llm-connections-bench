@@ -1,0 +1,27 @@
+---
+import { CATEGORY_COLORS, groupColorIndex } from "../lib/colors";
+import type { Puzzle } from "../lib/types";
+
+interface Props {
+  puzzle: Puzzle;
+}
+
+const { puzzle } = Astro.props;
+---
+
+<section class="puzzle-categories" aria-label="Answer categories">
+  {
+    puzzle.answers.map((group, i) => {
+      const c = CATEGORY_COLORS[groupColorIndex(i)];
+      return (
+        <div
+          class="answer-band"
+          style={`--band-bg: ${c.bg}; --band-text: ${c.text}`}
+        >
+          <span class="answer-band__category">{group.group}</span>
+          <span class="answer-band__words">{group.members.join(", ")}</span>
+        </div>
+      );
+    })
+  }
+</section>

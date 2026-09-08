@@ -21,7 +21,8 @@ def chat(messages, model="~openai/gpt-latest"):
         print(response)
         return response
 
-class OpenAIChat:
+
+class AIChat:
     def __init__(self, model="~openai/gpt-latest", system_prompt=None, response_schema=None):
         self.model = model
         self.messages = []
@@ -58,22 +59,38 @@ class OpenAIChat:
         try:
             return self._send_messages()
         except TooManyRequestsResponseError as e:
-            print("Rate limit exceeded, resting for 15 seconds...")
-            time.sleep(15)
+            print("Rate limit exceeded, resting for 30 seconds...")
+            time.sleep(30)
             return self._send_messages()
 
     def _send_messages(self):
         with OpenRouter(
             api_key=os.getenv("OPENROUTER_API_KEY", ""),
         ) as open_router:
+            t0 = time.perf_counter()
             response = open_router.chat.send(
                 model=self.model,
                 messages=self.messages,
                 response_format=self.response_schema,
                 stream=False
             )
+            latency = time.perf_counter() - t0
             message = response.choices[0].message
             self.messages.append(
-                {"role": message.role, "content": message.content}
+                {
+                    "role": message.role,
+                    "content": message.content,
+                    "latency": latency,
+                    "input_tokens": response.usage.prompt_tokens,
+                    "output_tokens": response.usage.completion_tokens,
+                    "total_cost": response.usage.cost
+                }
             )
         return message.content
+
+# Pure rename - identical functionality
+class OpenAIChat(AIChat):
+    pass
+
+class AnthropicChat(AIChat):
+    pass

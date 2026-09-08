@@ -1,0 +1,40 @@
+---
+interface Props {
+  currentPage: number;
+  totalPages: number;
+}
+
+const { currentPage, totalPages } = Astro.props;
+
+if (totalPages <= 1) return null;
+
+function pageHref(page: number): string {
+  return page === 1 ? "/" : `/page/${page}/`;
+}
+---
+
+<nav class="pagination" aria-label="Results pages">
+  {
+    currentPage > 1 ? (
+      <a class="pagination__link pagination__link--prev" href={pageHref(currentPage - 1)}>
+        ← Newer
+      </a>
+    ) : (
+      <span class="pagination__link pagination__link--disabled" aria-hidden="true" />
+    )
+  }
+
+  <span class="pagination__status">
+    Page {currentPage} of {totalPages}
+  </span>
+
+  {
+    currentPage < totalPages ? (
+      <a class="pagination__link pagination__link--next" href={pageHref(currentPage + 1)}>
+        Older →
+      </a>
+    ) : (
+      <span class="pagination__link pagination__link--disabled" aria-hidden="true" />
+    )
+  }
+</nav>

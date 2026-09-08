@@ -1,0 +1,27 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import HomeContent from "../../components/HomeContent.astro";
+import { getPaginatedDates, getHomePageCount, getModelStats } from "../../lib/data";
+
+export function getStaticPaths() {
+  const totalPages = getHomePageCount();
+  return Array.from({ length: totalPages - 1 }, (_, i) => ({
+    params: { page: String(i + 2) },
+  }));
+}
+
+const pageParam = Astro.params.page!;
+const currentPage = Number.parseInt(pageParam, 10);
+const totalPages = getHomePageCount();
+
+if (Number.isNaN(currentPage) || currentPage < 2 || currentPage > totalPages) {
+  return Astro.redirect("/");
+}
+
+const dates = getPaginatedDates(currentPage);
+const stats = getModelStats();
+---
+
+<BaseLayout title={`Page ${currentPage} — llm-connections`} showNav>
+  <HomeContent {dates} {stats} {currentPage} {totalPages} />
+</BaseLayout>

@@ -1,0 +1,67 @@
+---
+import { formatDate, shortModelName, isCompleted, solvedCategoryCount, CATEGORY_TOTAL } from "../lib/data";
+import type { DateSummary } from "../lib/types";
+
+interface Props {
+  summary: DateSummary;
+}
+
+const { summary } = Astro.props;
+---
+
+<article class="date-card">
+  <a class="date-card__link" href={`/date/${summary.date}/`}>
+    <header class="date-card__header">
+      <time class="date-card__date" datetime={summary.date}>{formatDate(summary.date)}</time>
+      <span class="date-card__arrow" aria-hidden="true">→</span>
+    </header>
+
+    {
+      summary.runs.length === 0 ? (
+        <p class="date-card__empty">No runs logged for this date</p>
+      ) : (
+        <ul class="date-card__results" aria-label="Model results">
+          {
+            summary.runs.map(({ model, run }) => (
+              <li class="date-card__result">
+                <span class="date-card__model">{shortModelName(model)}</span>
+                {isCompleted(run) ? (
+                  <>
+                    <span
+                      class:list={[
+                        "date-card__outcome",
+                        run.outcome === "solved"
+                          ? "date-card__outcome--solved"
+                          : "date-card__outcome--lost",
+                      ]}
+                    >
+                      {run.outcome === "solved" ? "Solved" : "Lost"}
+                    </span>
+                    <span class="date-card__stats">
+                      {
+                        run.outcome === "lost" && (
+                          <>
+                            {solvedCategoryCount(run.guesses)}/{CATEGORY_TOTAL} categories
+                            <span class="date-card__stat-sep" aria-hidden="true">·</span>
+                          </>
+                        )
+                      }
+                      {run.mistakes} mistake{run.mistakes === 1 ? "" : "s"}
+                      <span class="date-card__stat-sep" aria-hidden="true">·</span>
+                      {run.guesses.length} guess{run.guesses.length === 1 ? "" : "es"}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span class="date-card__outcome date-card__outcome--pending">In progress</span>
+                    <span class="date-card__stats">{run.guesses.length} guesses so far</span>
+                  </>
+                )}
+              </li>
+            ))
+          }
+        </ul>
+      )
+    }
+  </a>
+</article>

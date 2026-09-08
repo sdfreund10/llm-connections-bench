@@ -1,0 +1,33 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ModelRuns from "../../components/ModelRuns.astro";
+import PuzzleCategories from "../../components/PuzzleCategories.astro";
+import { getDateSummary, formatDate, getDatesWithRuns } from "../../lib/data";
+
+export function getStaticPaths() {
+  return getDatesWithRuns().map((date) => ({ params: { date } }));
+}
+
+const { date } = Astro.params;
+const summary = date ? getDateSummary(date) : null;
+
+if (!summary) {
+  return Astro.redirect("/");
+}
+---
+
+<BaseLayout
+  title={`${formatDate(date!)} — llm-connections`}
+  description={`Model results for the Connections puzzle on ${date}.`}
+  showNav
+>
+  <a class="date-page__back" href="/">← All dates</a>
+  <h1 class="date-page__title">{formatDate(date!)}</h1>
+  <p class="date-page__subtitle">
+    {summary.runs.length} model{summary.runs.length === 1 ? "" : "s"} played this puzzle
+  </p>
+
+  {summary.puzzle && <PuzzleCategories puzzle={summary.puzzle} />}
+
+  <ModelRuns summary={summary} />
+</BaseLayout>

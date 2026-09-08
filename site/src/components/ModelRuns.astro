@@ -1,0 +1,89 @@
+---
+import TileGrid from "./TileGrid.astro";
+import GuessAccordion from "./GuessAccordion.astro";
+import { shortModelName, isCompleted, solvedCategoryCount, CATEGORY_TOTAL } from "../lib/data";
+import { buildResultBoard, categoryIndexForGuess } from "../lib/board";
+import type { DateSummary } from "../lib/types";
+
+interface Props {
+  summary: DateSummary;
+}
+
+const { summary } = Astro.props;
+
+function successCategoryIndex(
+  puzzle: DateSummary["puzzle"],
+  guesses: { guess: string[]; success: boolean }[],
+  idx: number,
+): number | undefined {
+  const g = guesses[idx];
+  if (!g?.success || !puzzle) return undefined;
+  return categoryIndexForGuess(puzzle, g.guess);
+}
+---
+
+{
+  summary.runs.map(({ model, run }) => (
+    <section class="model-run" aria-labelledby={`model-${model.replace(/[^a-z0-9]/gi, "-")}`}>
+      <header class="model-run__header">
+        <h2
+          class="model-run__title"
+          id={`model-${model.replace(/[^a-z0-9]/gi, "-")}`}
+        >
+          {shortModelName(model)}
+        </h2>
+        <p class="model-run__full-name">{model}</p>
+        {isCompleted(run) ? (
+          <div class="model-run__stats">
+            <span
+              class:list={[
+                "model-run__outcome",
+                run.outcome === "solved" ? "model-run__outcome--solved" : "model-run__outcome--lost",
+              ]}
+            >
+              {run.outcome === "solved" ? "Solved" : "Lost"}
+            </span>
+            <span class="model-run__stat">{run.mistakes} mistake{run.mistakes === 1 ? "" : "s"}</span>
+            {
+              run.outcome === "lost" && (
+                <span class="model-run__stat">
+                  {solvedCategoryCount(run.guesses)}/{CATEGORY_TOTAL} categories
+                </span>
+              )
+            }
+            <span class="model-run__stat">{run.guesses.length} guesses</span>
+            {(run.invalid_guesses ?? 0) > 0 && (
+              <span class="model-run__stat">{run.invalid_guesses} invalid</span>
+            )}
+          </div>
+        ) : (
+          <p class="model-run__pending">Run in progress</p>
+        )}
+      </header>
+
+      {summary.puzzle && (
+        <div class="model-run__board">
+          <TileGrid
+            board={buildResultBoard(summary.puzzle, run.guesses)}
+            size="full"
+          />
+        </div>
+      )}
+
+      {run.guesses.length > 0 && (
+        <div class="model-run__guesses">
+          <h3 class="model-run__guesses-heading">Guess history</h3>
+          {
+            run.guesses.map((_, i) => (
+              <GuessAccordion
+                guesses={run.guesses}
+                guessIndex={i}
+                groupIndex={successCategoryIndex(summary.puzzle, run.guesses, i)}
+              />
+            ))
+          }
+        </div>
+      )}
+    </section>
+  ))
+}
