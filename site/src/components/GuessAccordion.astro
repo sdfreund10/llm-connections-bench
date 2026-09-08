@@ -1,6 +1,7 @@
 ---
 import type { Guess } from "../lib/types";
 import { CATEGORY_COLORS, groupColorIndex } from "../lib/colors";
+import { formatLatency, formatCost, formatTokens } from "../lib/data";
 
 interface Props {
   guesses: Guess[];
@@ -15,6 +16,14 @@ const color =
     ? CATEGORY_COLORS[groupColorIndex(groupIndex)]
     : null;
 const id = `guess-${guessIndex}`;
+const tokens =
+  guess.input_tokens != null || guess.output_tokens != null
+    ? (guess.input_tokens ?? 0) + (guess.output_tokens ?? 0)
+    : null;
+const hasUsage =
+  typeof guess.latency === "number" ||
+  tokens != null ||
+  typeof guess.total_cost === "number";
 ---
 
 <details class="guess-accordion">
@@ -28,6 +37,11 @@ const id = `guess-${guessIndex}`;
         <span class="guess-accordion__result guess-accordion__result--miss">Wrong</span>
       )
     }
+    {
+      typeof guess.latency === "number" && (
+        <span class="guess-accordion__meta">{formatLatency(guess.latency)}</span>
+      )
+    }
   </summary>
   <div
     class:list={["guess-accordion__body", color && "guess-accordion__body--categorized"]}
@@ -35,5 +49,36 @@ const id = `guess-${guessIndex}`;
     style={color ? `--category-color: ${color.bg}` : undefined}
   >
     <p class="guess-accordion__reasoning">{guess.reasoning}</p>
+    {
+      hasUsage && (
+        <dl class="guess-accordion__usage">
+          {typeof guess.latency === "number" && (
+            <>
+              <dt>Latency</dt>
+              <dd>{formatLatency(guess.latency)}</dd>
+            </>
+          )}
+          {tokens != null && (
+            <>
+              <dt>Tokens</dt>
+              <dd>
+                {formatTokens(tokens)}
+                {guess.input_tokens != null && guess.output_tokens != null && (
+                  <span class="guess-accordion__usage-detail">
+                    ({formatTokens(guess.input_tokens)} in / {formatTokens(guess.output_tokens)} out)
+                  </span>
+                )}
+              </dd>
+            </>
+          )}
+          {typeof guess.total_cost === "number" && (
+            <>
+              <dt>Cost</dt>
+              <dd>{formatCost(guess.total_cost)}</dd>
+            </>
+          )}
+        </dl>
+      )
+    }
   </div>
 </details>

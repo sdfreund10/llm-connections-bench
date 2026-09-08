@@ -85,15 +85,51 @@ export function getDateSummary(date: string): DateSummary | null {
 
 export function getModelStats(): ModelStats[] {
   const log = getGamesLog();
-  const byModel = new Map<string, { solved: number; lost: number; mistakes: number }>();
+  const byModel = new Map<
+    string,
+    {
+      solved: number;
+      lost: number;
+      mistakes: number;
+      waitS: number;
+      waitGames: number;
+      totalCost: number;
+      costGames: number;
+      totalTokens: number;
+      tokenGames: number;
+    }
+  >();
 
   for (const day of Object.values(log)) {
     for (const [model, run] of Object.entries(day)) {
       if (run.status !== "completed") continue;
-      const entry = byModel.get(model) ?? { solved: 0, lost: 0, mistakes: 0 };
+      const entry = byModel.get(model) ?? {
+        solved: 0,
+        lost: 0,
+        mistakes: 0,
+        waitS: 0,
+        waitGames: 0,
+        totalCost: 0,
+        costGames: 0,
+        totalTokens: 0,
+        tokenGames: 0,
+      };
       if (run.outcome === "solved") entry.solved += 1;
       else if (run.outcome === "lost") entry.lost += 1;
       entry.mistakes += run.mistakes ?? 0;
+      if (typeof run.llm_wait_s === "number") {
+        entry.waitS += run.llm_wait_s;
+        entry.waitGames += 1;
+      }
+      if (typeof run.total_cost === "number") {
+        entry.totalCost += run.total_cost;
+        entry.costGames += 1;
+      }
+      const tokens = (run.input_tokens ?? 0) + (run.output_tokens ?? 0);
+      if (run.input_tokens != null || run.output_tokens != null) {
+        entry.totalTokens += tokens;
+        entry.tokenGames += 1;
+      }
       byModel.set(model, entry);
     }
   }
@@ -108,9 +144,28 @@ export function getModelStats(): ModelStats[] {
         lost: s.lost,
         winRate: games ? s.solved / games : 0,
         avgMistakes: games ? s.mistakes / games : 0,
+        avgWaitS: s.waitGames ? s.waitS / s.waitGames : null,
+        totalCost: s.costGames ? s.totalCost : null,
+        totalTokens: s.tokenGames ? s.totalTokens : null,
       };
     })
     .sort((a, b) => b.winRate - a.winRate || a.avgMistakes - b.avgMistakes);
+}
+
+export function formatLatency(seconds: number): string {
+  if (seconds < 1) return `${Math.round(seconds * 1000)}ms`;
+  return `${seconds.toFixed(seconds < 10 ? 1 : 0)}s`;
+}
+
+export function formatCost(cost: number): string {
+  if (cost === 0) return "$0";
+  if (cost < 0.01) return `$${cost.toFixed(4)}`;
+  return `$${cost.toFixed(3)}`;
+}
+
+export function formatTokens(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
+  return String(n);
 }
 
 export function shortModelName(model: string): string {

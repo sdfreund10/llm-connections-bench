@@ -89,6 +89,9 @@ def complete_run(
     invalid_guesses: int,
     solved_groups: int,
     llm_wait_s: float,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    total_cost: float = 0.0,
 ) -> None:
     data = _load_log()
     date_key = _date_key(date)
@@ -104,6 +107,9 @@ def complete_run(
     run["invalid_guesses"] = invalid_guesses
     run["solved_groups"] = solved_groups
     run["llm_wait_s"] = llm_wait_s
+    run["input_tokens"] = input_tokens
+    run["output_tokens"] = output_tokens
+    run["total_cost"] = total_cost
     _save_log(data)
 
 

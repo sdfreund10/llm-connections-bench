@@ -1,6 +1,6 @@
 ---
 import type { ModelStats } from "../lib/types";
-import { shortModelName } from "../lib/data";
+import { shortModelName, formatLatency, formatCost, formatTokens } from "../lib/data";
 
 interface Props {
   stats: ModelStats[];
@@ -26,6 +26,9 @@ function pct(n: number): string {
               <th scope="col">Model</th>
               <th scope="col">Win rate</th>
               <th scope="col">Avg mistakes</th>
+              <th scope="col">Avg wait</th>
+              <th scope="col">Cost</th>
+              <th scope="col">Tokens</th>
               <th scope="col">Games</th>
             </tr>
           </thead>
@@ -43,6 +46,15 @@ function pct(n: number): string {
                     </span>
                   </td>
                   <td class="standings__num">{row.avgMistakes.toFixed(1)}</td>
+                  <td class="standings__num">
+                    {row.avgWaitS != null ? formatLatency(row.avgWaitS) : "—"}
+                  </td>
+                  <td class="standings__num">
+                    {row.totalCost != null ? formatCost(row.totalCost) : "—"}
+                  </td>
+                  <td class="standings__num">
+                    {row.totalTokens != null ? formatTokens(row.totalTokens) : "—"}
+                  </td>
                   <td class="standings__num">{row.games}</td>
                 </tr>
               ))

@@ -16,6 +16,10 @@ export interface Guess {
   guess: string[];
   reasoning: string;
   success: boolean;
+  latency?: number;
+  input_tokens?: number;
+  output_tokens?: number;
+  total_cost?: number;
 }
 
 export interface ModelRun {
@@ -24,6 +28,11 @@ export interface ModelRun {
   outcome?: "solved" | "lost";
   mistakes?: number;
   invalid_guesses?: number;
+  solved_groups?: number;
+  llm_wait_s?: number;
+  input_tokens?: number;
+  output_tokens?: number;
+  total_cost?: number;
 }
 
 export type GamesLog = Record<string, Record<string, ModelRun>>;
@@ -35,6 +44,9 @@ export interface ModelStats {
   lost: number;
   winRate: number;
   avgMistakes: number;
+  avgWaitS: number | null;
+  totalCost: number | null;
+  totalTokens: number | null;
 }
 
 export interface DateSummary {

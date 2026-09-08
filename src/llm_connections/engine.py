@@ -1,6 +1,5 @@
 import datetime
 import json
-import time
 from llm_connections.llm import AIChat
 from llm_connections.game import Game, InvalidGuessError
 from llm_connections.log import start_run, log_guess, complete_run
@@ -58,6 +57,9 @@ def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False):
     )
 
     llm_wait_s = 0.0
+    input_tokens = 0
+    output_tokens = 0
+    total_cost = 0.0
     invalid_guesses = 0
     guess_error = None
     while not game.is_solved() and not game.is_lost():
@@ -65,12 +67,14 @@ def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False):
         if guess_error is not None:
             body = f"Invalid guess - Please try again. {guess_error}\n\n{body}"
 
-        t0 = time.perf_counter()
-        guess = chat.send(body)
-        latency = time.perf_counter() - t0
-        llm_wait_s += latency
-        guess = json.loads(guess)
-        guess['latency'] = latency
+        content, usage = chat.send(body)
+        llm_wait_s += usage.latency
+        input_tokens += usage.input_tokens
+        output_tokens += usage.output_tokens
+        total_cost += usage.total_cost
+
+        guess = json.loads(content)
+        guess = guess | usage.to_dict()
         try:
             result = game.check_guess(guess['guess'])
             guess_error = None
@@ -83,5 +87,16 @@ def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False):
 
     outcome = "solved" if game.is_solved() else "lost"
     solved_groups = len(game.solved_groups())
-    complete_run(date, model, outcome=outcome, mistakes=game.mistakes, invalid_guesses=invalid_guesses, solved_groups=solved_groups, llm_wait_s=llm_wait_s)
+    complete_run(
+        date,
+        model,
+        outcome=outcome,
+        mistakes=game.mistakes,
+        invalid_guesses=invalid_guesses,
+        solved_groups=solved_groups,
+        llm_wait_s=llm_wait_s,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        total_cost=total_cost,
+    )
     print(f"[{date}] Game {outcome}! ({game.mistakes} mistakes)")

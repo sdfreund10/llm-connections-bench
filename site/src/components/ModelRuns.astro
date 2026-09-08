@@ -1,7 +1,15 @@
 ---
 import TileGrid from "./TileGrid.astro";
 import GuessAccordion from "./GuessAccordion.astro";
-import { shortModelName, isCompleted, solvedCategoryCount, CATEGORY_TOTAL } from "../lib/data";
+import {
+  shortModelName,
+  isCompleted,
+  solvedCategoryCount,
+  CATEGORY_TOTAL,
+  formatLatency,
+  formatCost,
+  formatTokens,
+} from "../lib/data";
 import { buildResultBoard, categoryIndexForGuess } from "../lib/board";
 import type { DateSummary } from "../lib/types";
 
@@ -54,6 +62,17 @@ function successCategoryIndex(
             <span class="model-run__stat">{run.guesses.length} guesses</span>
             {(run.invalid_guesses ?? 0) > 0 && (
               <span class="model-run__stat">{run.invalid_guesses} invalid</span>
+            )}
+            {typeof run.llm_wait_s === "number" && (
+              <span class="model-run__stat">{formatLatency(run.llm_wait_s)} wait</span>
+            )}
+            {(run.input_tokens != null || run.output_tokens != null) && (
+              <span class="model-run__stat">
+                {formatTokens((run.input_tokens ?? 0) + (run.output_tokens ?? 0))} tokens
+              </span>
+            )}
+            {typeof run.total_cost === "number" && (
+              <span class="model-run__stat">{formatCost(run.total_cost)}</span>
             )}
           </div>
         ) : (

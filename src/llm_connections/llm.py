@@ -1,11 +1,27 @@
+from dataclasses import dataclass
 from openrouter import OpenRouter
-from openrouter.components import ResponseFormat, ChatFormatJSONSchemaConfig
 from dotenv import load_dotenv
 import os
 import time
 from openrouter.errors import TooManyRequestsResponseError
-# openrouter.errors.toomanyrequestsresponse_error.TooManyRequestsResponseError
+
 load_dotenv()
+
+
+@dataclass(frozen=True)
+class ChatUsage:
+    latency: float
+    input_tokens: int
+    output_tokens: int
+    total_cost: float
+
+    def to_dict(self):
+        return {
+            "latency": self.latency,
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "total_cost": self.total_cost,
+        }
 
 
 def chat(messages, model="~openai/gpt-latest"):
@@ -54,7 +70,8 @@ class AIChat:
                     }
                 }
             }
-    def send(self, message):
+
+    def send(self, message) -> tuple[str, ChatUsage]:
         self.messages.append({"role": "user", "content": message})
         try:
             return self._send_messages()
@@ -63,7 +80,7 @@ class AIChat:
             time.sleep(30)
             return self._send_messages()
 
-    def _send_messages(self):
+    def _send_messages(self) -> tuple[str, ChatUsage]:
         with OpenRouter(
             api_key=os.getenv("OPENROUTER_API_KEY", ""),
         ) as open_router:
@@ -76,21 +93,30 @@ class AIChat:
             )
             latency = time.perf_counter() - t0
             message = response.choices[0].message
+            usage = response.usage
+            chat_usage = ChatUsage(
+                latency=latency,
+                input_tokens=getattr(usage, "prompt_tokens", 0) or 0,
+                output_tokens=getattr(usage, "completion_tokens", 0) or 0,
+                total_cost=float(getattr(usage, "cost", 0) or 0),
+            )
             self.messages.append(
                 {
                     "role": message.role,
                     "content": message.content,
-                    "latency": latency,
-                    "input_tokens": response.usage.prompt_tokens,
-                    "output_tokens": response.usage.completion_tokens,
-                    "total_cost": response.usage.cost
+                    "latency": chat_usage.latency,
+                    "input_tokens": chat_usage.input_tokens,
+                    "output_tokens": chat_usage.output_tokens,
+                    "total_cost": chat_usage.total_cost,
                 }
             )
-        return message.content
+        return message.content, chat_usage
+
 
 # Pure rename - identical functionality
 class OpenAIChat(AIChat):
     pass
+
 
 class AnthropicChat(AIChat):
     pass
