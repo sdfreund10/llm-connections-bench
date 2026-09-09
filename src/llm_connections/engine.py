@@ -39,6 +39,8 @@ SUPPORTED_MODELS = [
     "google/gemini-3.7-flash",
 ]
 
+# TODO: Some models, like claude-sonnet-5, blow up with thinking tokens. We may need to default to low effort or something.
+# Defaulting to low effort or turning off thinking tokens may save money and help with latency.
 def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False):
     start_run(date, model, force=force)
     game = Game.load(date)
@@ -79,10 +81,13 @@ def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False):
             result = game.check_guess(guess['guess'])
             guess_error = None
             guess['success'] = result is not None
+            guess['invalid'] = False
         except InvalidGuessError as err:
             guess_error = err
             invalid_guesses += 1
             guess['success'] = False
+            guess['invalid'] = True
+            guess['invalid_reason'] = str(err)
         log_guess(date, model, guess)
 
     outcome = "solved" if game.is_solved() else "lost"

@@ -16,6 +16,10 @@ export interface Guess {
   guess: string[];
   reasoning: string;
   success: boolean;
+  /** True when the guess was rejected (wrong size, unknown words, duplicate, etc.). */
+  invalid?: boolean;
+  /** Why the guess was rejected; only set when invalid is true. */
+  invalid_reason?: string;
   latency?: number;
   input_tokens?: number;
   output_tokens?: number;
@@ -45,8 +49,8 @@ export interface ModelStats {
   winRate: number;
   avgMistakes: number;
   avgWaitS: number | null;
-  totalCost: number | null;
-  totalTokens: number | null;
+  avgCost: number | null;
+  avgTokens: number | null;
 }
 
 export interface DateSummary {

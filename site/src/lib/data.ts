@@ -100,7 +100,8 @@ export function getModelStats(): ModelStats[] {
     }
   >();
 
-  for (const day of Object.values(log)) {
+  for (const [date, day] of Object.entries(log)) {
+    if (date < MIN_DATE) continue;
     for (const [model, run] of Object.entries(day)) {
       if (run.status !== "completed") continue;
       const entry = byModel.get(model) ?? {
@@ -145,8 +146,8 @@ export function getModelStats(): ModelStats[] {
         winRate: games ? s.solved / games : 0,
         avgMistakes: games ? s.mistakes / games : 0,
         avgWaitS: s.waitGames ? s.waitS / s.waitGames : null,
-        totalCost: s.costGames ? s.totalCost : null,
-        totalTokens: s.tokenGames ? s.totalTokens : null,
+        avgCost: s.costGames ? s.totalCost / s.costGames : null,
+        avgTokens: s.tokenGames ? s.totalTokens / s.tokenGames : null,
       };
     })
     .sort((a, b) => b.winRate - a.winRate || a.avgMistakes - b.avgMistakes);
@@ -164,8 +165,9 @@ export function formatCost(cost: number): string {
 }
 
 export function formatTokens(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
-  return String(n);
+  const rounded = Math.round(n);
+  if (rounded >= 1000) return `${(rounded / 1000).toFixed(rounded >= 10000 ? 0 : 1)}k`;
+  return String(rounded);
 }
 
 export function shortModelName(model: string): string {

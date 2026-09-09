@@ -26,9 +26,9 @@ function pct(n: number): string {
               <th scope="col">Model</th>
               <th scope="col">Win rate</th>
               <th scope="col">Avg mistakes</th>
-              <th scope="col">Avg wait</th>
-              <th scope="col">Cost</th>
-              <th scope="col">Tokens</th>
+              <th scope="col">Avg Game Time</th>
+              <th scope="col">Cost/Game</th>
+              <th scope="col">Tokens/Game</th>
               <th scope="col">Games</th>
             </tr>
           </thead>
@@ -50,10 +50,10 @@ function pct(n: number): string {
                     {row.avgWaitS != null ? formatLatency(row.avgWaitS) : "—"}
                   </td>
                   <td class="standings__num">
-                    {row.totalCost != null ? formatCost(row.totalCost) : "—"}
+                    {row.avgCost != null ? formatCost(row.avgCost) : "—"}
                   </td>
                   <td class="standings__num">
-                    {row.totalTokens != null ? formatTokens(row.totalTokens) : "—"}
+                    {row.avgTokens != null ? formatTokens(row.avgTokens) : "—"}
                   </td>
                   <td class="standings__num">{row.games}</td>
                 </tr>

@@ -4,6 +4,9 @@
 uv run llm-connections update
 # Run games between provided dates through provided LLM
 uv run llm-connections run 2026-09-01 2026-09-06 openai/gpt-4.1
+# Backfill the benchmark suite (skips existing entries; defaults 2026-08-15 → 2026-09-04)
+uv run llm-connections backfill
+uv run llm-connections backfill 2026-08-15 2026-09-04 --model z-ai/glm-5.3-flash
 ```
 
 ## Static site

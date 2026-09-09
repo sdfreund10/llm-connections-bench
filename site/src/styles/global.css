@@ -696,6 +696,19 @@ main {
   color: #a33;
 }
 
+.guess-accordion__result--invalid {
+  color: #8a6d1d;
+}
+
+.guess-accordion__invalid-reason {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #8a6d1d;
+  max-width: 65ch;
+  line-height: 1.45;
+}
+
 .guess-accordion__body {
   padding: 0.65rem 0.85rem 0.85rem 1.75rem;
   border-top: 1px solid var(--ground-deep);

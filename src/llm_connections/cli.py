@@ -1,6 +1,12 @@
 import argparse
 from datetime import date, timedelta
 
+from llm_connections.backfill import (
+    DEFAULT_END,
+    DEFAULT_START,
+    MODELS,
+    run_backfill,
+)
 from llm_connections.engine import run_game
 from llm_connections.game import download_connections
 from llm_connections.log import GameAlreadyCompletedError, list_results
@@ -64,6 +70,12 @@ def cmd_list(args: argparse.Namespace) -> None:
     )
 
 
+def cmd_backfill(args: argparse.Namespace) -> None:
+    _require_date_range(args)
+    models = args.model or None
+    run_backfill(start=args.start, end=args.end, models=models)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="LLM Connections tools")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -96,6 +108,39 @@ def main() -> None:
     list_parser.add_argument("end", type=_parse_date, help="End date (YYYY-MM-DD)")
     list_parser.add_argument("model", help="LLM model id (e.g. openai/gpt-4.1)")
     list_parser.set_defaults(func=cmd_list)
+
+    backfill_parser = subparsers.add_parser(
+        "backfill",
+        help=(
+            "Run the benchmark model suite over a date range "
+            "(skips dates that already have an entry)"
+        ),
+    )
+    backfill_parser.add_argument(
+        "start",
+        type=_parse_date,
+        nargs="?",
+        default=DEFAULT_START,
+        help=f"Start date (YYYY-MM-DD), default {DEFAULT_START}",
+    )
+    backfill_parser.add_argument(
+        "end",
+        type=_parse_date,
+        nargs="?",
+        default=DEFAULT_END,
+        help=f"End date (YYYY-MM-DD), default {DEFAULT_END}",
+    )
+    backfill_parser.add_argument(
+        "--model",
+        action="append",
+        metavar="MODEL",
+        help=(
+            "Limit to one or more models (repeatable). "
+            f"Default suite has {len(MODELS)} models — edit "
+            "llm_connections.backfill.MODELS to change it."
+        ),
+    )
+    backfill_parser.set_defaults(func=cmd_backfill)
 
     args = parser.parse_args()
     args.func(args)

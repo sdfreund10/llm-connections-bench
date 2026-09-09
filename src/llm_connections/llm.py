@@ -89,7 +89,8 @@ class AIChat:
                 model=self.model,
                 messages=self.messages,
                 response_format=self.response_schema,
-                stream=False
+                stream=False,
+                reasoning={"effort": "low"}
             )
             latency = time.perf_counter() - t0
             message = response.choices[0].message
