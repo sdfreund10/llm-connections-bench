@@ -82,7 +82,7 @@ def cmd_backfill(args: argparse.Namespace) -> None:
 
 def cmd_nightly(args: argparse.Namespace) -> None:
     models = args.model or None
-    failed = run_nightly(day=args.date, models=models)
+    failed = run_nightly(models=models)
     if failed:
         raise SystemExit(1)
 
@@ -157,6 +157,15 @@ def main() -> None:
         "nightly",
         help=(
             "Refresh connections data and run the model suite for the last week of data"
+        ),
+    )
+    nightly_parser.add_argument(
+        "--model",
+        action="append",
+        metavar="MODEL",
+        help=(
+            "Limit to one or more models (repeatable). "
+            f"Default suite has {len(MODELS)} models."
         ),
     )
     nightly_parser.set_defaults(func=cmd_nightly)
