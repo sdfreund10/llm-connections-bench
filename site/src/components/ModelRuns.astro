@@ -30,9 +30,17 @@ function successCategoryIndex(
 }
 ---
 
+<div data-model-group>
+  <p class="date-page__empty" data-model-group-empty hidden>
+    Select at least one model to see runs for this puzzle.
+  </p>
 {
   summary.runs.map(({ model, run }) => (
-    <section class="model-run" aria-labelledby={`model-${model.replace(/[^a-z0-9]/gi, "-")}`}>
+    <section
+      class="model-run"
+      data-model={model}
+      aria-labelledby={`model-${model.replace(/[^a-z0-9]/gi, "-")}`}
+    >
       <header class="model-run__header">
         <h2
           class="model-run__title"
@@ -106,3 +114,4 @@ function successCategoryIndex(
     </section>
   ))
 }
+</div>

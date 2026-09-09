@@ -1,5 +1,7 @@
 ---
 import "../styles/global.css";
+import ModelFilter from "../components/ModelFilter.astro";
+import { DEFAULT_MODELS, MODEL_QUERY_PARAM } from "../lib/models";
 
 interface Props {
   title?: string;
@@ -50,6 +52,7 @@ const {
         }
       </div>
     </header>
+    <ModelFilter />
     <main id="main">
       <slot />
     </main>
@@ -62,5 +65,58 @@ const {
         >.
       </p>
     </footer>
+    <script is:inline define:vars={{ defaults: [...DEFAULT_MODELS], param: MODEL_QUERY_PARAM }}>
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var selected;
+        if (!params.has(param)) {
+          selected = defaults.slice();
+        } else {
+          var raw = params.get(param) || "";
+          selected = raw
+            ? raw.split(",").map(function (s) {
+                try {
+                  return decodeURIComponent(s.trim());
+                } catch (e) {
+                  return s.trim();
+                }
+              }).filter(Boolean)
+            : [];
+        }
+        var set = {};
+        for (var i = 0; i < selected.length; i++) set[selected[i]] = true;
+
+        var nodes = document.querySelectorAll("[data-model]");
+        for (var j = 0; j < nodes.length; j++) {
+          var el = nodes[j];
+          if (set[el.getAttribute("data-model")]) el.setAttribute("data-show", "");
+          else el.removeAttribute("data-show");
+        }
+
+        var toggles = document.querySelectorAll("[data-model-toggle]");
+        for (var k = 0; k < toggles.length; k++) {
+          toggles[k].checked = !!set[toggles[k].value];
+        }
+
+        var groups = document.querySelectorAll("[data-model-group]");
+        for (var g = 0; g < groups.length; g++) {
+          var group = groups[g];
+          var any = group.querySelector("[data-model][data-show]");
+          var empty = group.querySelector("[data-model-group-empty]");
+          if (empty) empty.hidden = !!any;
+        }
+
+        var hint = document.querySelector("[data-model-filter-hint]");
+        if (hint) hint.hidden = selected.length > 0;
+
+        var summary = document.querySelector("[data-model-filter-summary]");
+        if (summary) {
+          summary.textContent =
+            selected.length === 0 ? "None selected" : selected.length + " selected";
+        }
+
+        document.documentElement.classList.add("js");
+      })();
+    </script>
   </body>
 </html>

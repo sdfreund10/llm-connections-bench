@@ -16,8 +16,8 @@ MODELS: list[str] = [
     # "openai/gpt-4.1-nano",
     "openai/gpt-4.1-mini",
     "openai/gpt-4.1",
+    "openai/gpt-5.6-luna",
     # "openai/gpt-5.6-sol",
-    # "openai/gpt-5.6-luna",
 
     # Anthropic
     "anthropic/claude-haiku-4.5",
@@ -27,7 +27,7 @@ MODELS: list[str] = [
     # Google
     "google/gemini-3.5-flash-lite",
     "google/gemini-3.7-flash",
-    # "google/gemini-3.8-flash",
+    "google/gemini-3.8-flash",
 
     # Z.ai
     "z-ai/glm-5.3-flash",
@@ -39,6 +39,11 @@ MODELS: list[str] = [
     # xAI
     "x-ai/grok-4.3",
     # "x-ai/grok-4.6",
+
+    # Qwen
+    "qwen/qwen3.8-flash",
+    # "qwen/qwen3.8-27b",
+    # "qwen/qwen3.8-2.4t-a95b",
 ]
 
 # Promotion ladders (only if entry underperforms)

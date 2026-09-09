@@ -83,6 +83,17 @@ export function getDateSummary(date: string): DateSummary | null {
   };
 }
 
+/** All model IDs present in the games log (corpus window), sorted. */
+export function getAllModelIds(): string[] {
+  const log = getGamesLog();
+  const models = new Set<string>();
+  for (const [date, day] of Object.entries(log)) {
+    if (date < MIN_DATE) continue;
+    for (const model of Object.keys(day)) models.add(model);
+  }
+  return [...models].sort((a, b) => a.localeCompare(b));
+}
+
 export function getModelStats(): ModelStats[] {
   const log = getGamesLog();
   const byModel = new Map<

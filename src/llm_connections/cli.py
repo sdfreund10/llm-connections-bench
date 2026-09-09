@@ -8,7 +8,7 @@ from llm_connections.backfill import (
     run_backfill,
 )
 from llm_connections.engine import run_game
-from llm_connections.game import download_connections
+from llm_connections.game import download_connections, most_recent_date
 from llm_connections.log import GameAlreadyCompletedError, list_results
 
 
@@ -23,6 +23,9 @@ def _require_date_range(args: argparse.Namespace) -> None:
 
 def cmd_update(_args: argparse.Namespace) -> None:
     download_connections()
+    latest_date = most_recent_date()
+    if latest_date is not None:
+        print(f"Latest Game: {latest_date}")
 
 
 def cmd_run(args: argparse.Namespace) -> None:

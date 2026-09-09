@@ -35,6 +35,13 @@ def download_connections():
         json.dump(response.json(), f, indent=2)
     print("Connections file updated.")
 
+def most_recent_date():
+    if not _file_exists():
+        return None
+    with open(CONNECTIONS_FILE, "r") as f:
+        entries = json.load(f)
+        return max(datetime.strptime(entry["date"], "%Y-%m-%d") for entry in entries)
+
 class Group:
     def __init__(self, data: dict):
         self.data = data

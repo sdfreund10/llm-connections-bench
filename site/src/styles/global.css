@@ -152,6 +152,155 @@ a:focus-visible {
   max-width: 28rem;
 }
 
+/* Model filter — collapsed by default behind a summary control */
+.model-filter {
+  border-bottom: 2px solid var(--ink);
+  background: var(--ground-deep);
+  padding: 0;
+}
+
+.model-filter__summary {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 0.65rem 1.5rem;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.model-filter__summary::-webkit-details-marker {
+  display: none;
+}
+
+.model-filter__summary::marker {
+  content: "";
+}
+
+.model-filter__summary:focus-visible {
+  outline: none;
+  box-shadow: inset var(--focus-ring);
+}
+
+.model-filter__summary-title {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.model-filter__summary-meta {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.model-filter__chevron {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid var(--ink-muted);
+  border-bottom: 2px solid var(--ink-muted);
+  transform: rotate(45deg);
+  transition: transform 160ms ease-out;
+  flex-shrink: 0;
+}
+
+.model-filter[open] .model-filter__chevron {
+  transform: rotate(225deg);
+  margin-top: 0.2rem;
+}
+
+.model-filter__panel {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 0 1.5rem 0.9rem;
+}
+
+.model-filter__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.model-filter__option {
+  display: inline-flex;
+  cursor: pointer;
+  user-select: none;
+}
+
+.model-filter__checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+}
+
+.model-filter__label {
+  display: inline-block;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  background: var(--tile-bg);
+  border: 2px solid var(--tile-border);
+  border-radius: var(--radius-tile);
+  transition:
+    color 160ms ease-out,
+    border-color 160ms ease-out,
+    background-color 160ms ease-out;
+}
+
+.model-filter__option:hover .model-filter__label {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
+
+.model-filter__checkbox:focus-visible + .model-filter__label {
+  box-shadow: var(--focus-ring);
+}
+
+.model-filter__checkbox:checked + .model-filter__label {
+  color: var(--ink);
+  border-color: var(--ink);
+  background: #f8df00;
+}
+
+.model-filter__hint {
+  margin: 0.65rem 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+
+/* Hide filtered-out models once JS has applied the selection */
+html.js [data-model]:not([data-show]) {
+  display: none !important;
+}
+
+.standings__table-wrap:has([data-model-group-empty]:not([hidden])) .standings__table {
+  display: none;
+}
+
+.date-card__results-wrap:has([data-model-group-empty]:not([hidden])) .date-card__results {
+  display: none;
+}
+
+.date-page__empty {
+  margin: 1.5rem 0;
+  padding: 1rem 1.1rem;
+  font-size: 0.95rem;
+  color: var(--ink-muted);
+  background: var(--tile-bg);
+  border: 2px solid var(--tile-border);
+  border-radius: var(--radius-card);
+}
+
 /* Main */
 main {
   flex: 1;

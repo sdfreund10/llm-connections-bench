@@ -98,13 +98,14 @@ The visual world is the Connections game board itself: off-white ground, bold up
 ## Components
 
 - **TileGrid:** 4×4 grid, mini and full sizes; solved state tints tile background.
-- **DateCard:** Entire card is a link; mini grid + outcome chips per model.
+- **DateCard:** Entire card is a link; outcome chips per visible model.
 - **StandingsTable:** Bordered table, uppercase column headers on ground row.
+- **ModelFilter:** Collapsed `<details>` under the site header; tile toggles expand on demand; selection persists in `?models=`.
 - **GuessAccordion:** Native `<details>`; summary shows guess words; body uses category accent gradient on correct guesses.
 - **AnswerBand:** Full-width category bar with group name + members (solved games only).
 
 ## Do's and Don'ts
 
-**Do:** Use category colors on answer bands and correct-guess accents. Keep words uppercase on tiles. Show all models present in data.
+**Do:** Use category colors on answer bands and correct-guess accents. Keep words uppercase on tiles. Default the model filter to a curated allowlist; let the URL control which models render.
 
 **Don't:** Use generic dashboard cards, bar-chart heroes, or Inter/system-default UI. Don't imply NYT affiliation. Don't use kickers above headings.

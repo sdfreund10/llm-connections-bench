@@ -23,7 +23,11 @@ if (!summary) {
 >
   <a class="date-page__back" href="/">← All dates</a>
   <h1 class="date-page__title">{formatDate(date!)}</h1>
-  <p class="date-page__subtitle">
+  <p
+    class="date-page__subtitle"
+    data-model-visible-count
+    data-model-total={summary.runs.length}
+  >
     {summary.runs.length} model{summary.runs.length === 1 ? "" : "s"} played this puzzle
   </p>
 

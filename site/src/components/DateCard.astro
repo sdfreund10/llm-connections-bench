@@ -20,10 +20,11 @@ const { summary } = Astro.props;
       summary.runs.length === 0 ? (
         <p class="date-card__empty">No runs logged for this date</p>
       ) : (
-        <ul class="date-card__results" aria-label="Model results">
+        <div class="date-card__results-wrap" data-model-group>
+          <ul class="date-card__results" aria-label="Model results">
           {
             summary.runs.map(({ model, run }) => (
-              <li class="date-card__result">
+              <li class="date-card__result" data-model={model}>
                 <span class="date-card__model">{shortModelName(model)}</span>
                 {isCompleted(run) ? (
                   <>
@@ -60,7 +61,11 @@ const { summary } = Astro.props;
               </li>
             ))
           }
-        </ul>
+          </ul>
+          <p class="date-card__empty" data-model-group-empty hidden>
+            No selected models for this date
+          </p>
+        </div>
       )
     }
   </a>

@@ -1,0 +1,43 @@
+---
+import { getAllModelIds, shortModelName } from "../lib/data";
+
+const models = getAllModelIds();
+---
+
+{
+  models.length > 0 && (
+    <details class="model-filter" data-model-filter>
+      <summary class="model-filter__summary">
+        <span class="model-filter__summary-title" id="model-filter-heading">Models</span>
+        <span class="model-filter__summary-meta" data-model-filter-summary></span>
+        <span class="model-filter__chevron" aria-hidden="true" />
+      </summary>
+      <div class="model-filter__panel">
+        <div class="model-filter__list" role="group" aria-labelledby="model-filter-heading">
+          {models.map((model) => (
+            <label class="model-filter__option">
+              <input
+                class="model-filter__checkbox"
+                type="checkbox"
+                name="models"
+                value={model}
+                data-model-toggle
+              />
+              <span class="model-filter__label" title={model}>
+                {shortModelName(model)}
+              </span>
+            </label>
+          ))}
+        </div>
+        <p class="model-filter__hint" data-model-filter-hint hidden>
+          Select at least one model to see results.
+        </p>
+      </div>
+    </details>
+  )
+}
+
+<script>
+  import { initModelFilter } from "../lib/model-filter-client";
+  initModelFilter();
+</script>

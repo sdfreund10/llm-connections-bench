@@ -19,7 +19,7 @@ function pct(n: number): string {
     stats.length === 0 ? (
       <p class="standings__empty">No completed runs yet.</p>
     ) : (
-      <div class="standings__table-wrap">
+      <div class="standings__table-wrap" data-model-group>
         <table class="standings__table">
           <thead>
             <tr>
@@ -35,7 +35,7 @@ function pct(n: number): string {
           <tbody>
             {
               stats.map((row) => (
-                <tr>
+                <tr data-model={row.model}>
                   <td class="standings__model" title={row.model}>
                     {shortModelName(row.model)}
                   </td>
@@ -61,6 +61,9 @@ function pct(n: number): string {
             }
           </tbody>
         </table>
+        <p class="standings__empty" data-model-group-empty hidden>
+          Select at least one model to see standings.
+        </p>
       </div>
     )
   }
