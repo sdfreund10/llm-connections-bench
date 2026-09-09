@@ -1,0 +1,55 @@
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  DATA_BUCKET: ${{ vars.DATA_BUCKET || 'connections-bench-data-prod' }}
+  SITE_BUCKET: ${{ vars.SITE_BUCKET || 'connections-bench-assets-prod' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Pull data from GCS
+        run: |
+          mkdir -p data
+          gcloud storage cp "gs://${DATA_BUCKET}/games.json" data/games.json
+          gcloud storage cp "gs://${DATA_BUCKET}/connections.json" data/connections.json
+
+      - name: Build Astro site
+        working-directory: site
+        env:
+          DATA_DIR: ${{ github.workspace }}/data
+        run: |
+          npm ci
+          npm run build
+
+      - name: Publish to assets bucket
+        run: |
+          gcloud storage rsync --delete site/dist "gs://${SITE_BUCKET}"

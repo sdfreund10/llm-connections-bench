@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { GamesLog, Guess, ModelRun, ModelStats, Puzzle, DateSummary } from "./types";
 
-const DATA_DIR = resolve(process.cwd(), "../data");
+const DATA_DIR = resolve(process.env.DATA_DIR ?? resolve(process.cwd(), "../data"));
 const MIN_DATE = "2026-08-01";
 export const HOME_PAGE_SIZE = 7;
 

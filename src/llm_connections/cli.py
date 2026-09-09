@@ -10,6 +10,7 @@ from llm_connections.backfill import (
 from llm_connections.engine import run_game
 from llm_connections.game import download_connections, most_recent_date
 from llm_connections.log import GameAlreadyCompletedError, list_results
+from llm_connections.nightly import run_nightly
 
 
 def _parse_date(value: str) -> date:
@@ -79,6 +80,13 @@ def cmd_backfill(args: argparse.Namespace) -> None:
     run_backfill(start=args.start, end=args.end, models=models)
 
 
+def cmd_nightly(args: argparse.Namespace) -> None:
+    models = args.model or None
+    failed = run_nightly(day=args.date, models=models)
+    if failed:
+        raise SystemExit(1)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="LLM Connections tools")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -144,6 +152,14 @@ def main() -> None:
         ),
     )
     backfill_parser.set_defaults(func=cmd_backfill)
+
+    nightly_parser = subparsers.add_parser(
+        "nightly",
+        help=(
+            "Refresh connections data and run the model suite for the last week of data"
+        ),
+    )
+    nightly_parser.set_defaults(func=cmd_nightly)
 
     args = parser.parse_args()
     args.func(args)

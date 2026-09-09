@@ -1,0 +1,57 @@
+name: Build image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Dockerfile"
+      - "src/**"
+      - "scripts/nightly_cloud.sh"
+      - "scripts/sync_data.sh"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "site/package.json"
+      - "site/package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  ARTIFACT_REGISTRY_REPO: ${{ vars.ARTIFACT_REGISTRY_REPO }}
+  IMAGE_NAME: llm-connections-nightly
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          token_format: access_token
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker "$(echo "$ARTIFACT_REGISTRY_REPO" | cut -d/ -f1)" --quiet
+
+      - name: Build and push
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          IMAGE="${ARTIFACT_REGISTRY_REPO}/${IMAGE_NAME}"
+          docker build -t "${IMAGE}:main" -t "${IMAGE}:${SHA}" .
+          docker push "${IMAGE}:main"
+          docker push "${IMAGE}:${SHA}"
+          echo "Pushed ${IMAGE}:main and ${IMAGE}:${SHA}"
+          echo "Update the Cloud Run Job image manually or with:"
+          echo "  gcloud run jobs update <JOB_NAME> --image ${IMAGE}:${SHA}"
