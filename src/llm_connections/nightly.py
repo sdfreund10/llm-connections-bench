@@ -8,7 +8,7 @@ from llm_connections.backfill import MODELS
 from llm_connections.engine import run_game
 from llm_connections.game import download_connections
 from llm_connections.log import GameAlreadyCompletedError, has_completed_entry
-from llm_connections.telemetry import capture_run_failure, capture_sync_failure
+from llm_connections.telemetry import capture_run_failure, capture_sync_failure, monitor_nightly_job
 
 
 def _get_date_range() -> tuple[date, date]:
@@ -32,6 +32,7 @@ def _run_game_for_date(target: date, model: str) -> str:
         capture_run_failure(exc, game_date=target, model=model)
         return 'failed'
 
+@monitor_nightly_job
 def run_nightly(
     *,
     models: list[str] | None = None,

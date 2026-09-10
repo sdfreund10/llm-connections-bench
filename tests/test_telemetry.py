@@ -1,9 +1,12 @@
 from datetime import date
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from llm_connections import telemetry
+from llm_connections.engine import run_game
+from llm_connections.nightly import run_nightly
 
 
 class TestInitSentry:
@@ -90,30 +93,95 @@ class TestCaptureHelpers:
         )
 
 
-class TestNightlyCheckin:
-    def test_noop_locally_without_force(self, monkeypatch):
+def _sample_metadata(**overrides) -> SimpleNamespace:
+    data = {
+        "outcome": "solved",
+        "mistakes": 1,
+        "invalid_guesses": 0,
+        "solved_groups": 4,
+        "llm_wait_s": 2.5,
+        "input_tokens": 100,
+        "output_tokens": 50,
+        "total_cost": 0.01,
+    }
+    data.update(overrides)
+    return SimpleNamespace(**data)
+
+
+class TestRecordGame:
+    def test_passthrough_without_dsn(self, monkeypatch):
+        monkeypatch.delenv("SENTRY_DSN", raising=False)
+        metadata = _sample_metadata()
+
+        @telemetry.record_game
+        def stub(date, model="openai/gpt-4.1", force=False):
+            return metadata
+
+        with patch("llm_connections.telemetry.sentry_sdk.start_transaction") as start:
+            assert stub(date(2026, 9, 1), model="m") is metadata
+        start.assert_not_called()
+
+    def test_records_transaction_from_metadata(self, monkeypatch):
+        monkeypatch.setenv("SENTRY_DSN", "https://key@example.com/1")
+        metadata = _sample_metadata()
+        txn = MagicMock()
+        txn.__enter__ = MagicMock(return_value=txn)
+        txn.__exit__ = MagicMock(return_value=False)
+
+        @telemetry.record_game
+        def stub(date, model="openai/gpt-4.1", force=False):
+            return metadata
+
+        with patch(
+            "llm_connections.telemetry.sentry_sdk.start_transaction",
+            return_value=txn,
+        ) as start:
+            assert stub(date(2026, 9, 1), model="openai/gpt-4.1") is metadata
+
+        start.assert_called_once_with(
+            op="task.game",
+            name="run_game openai/gpt-4.1 2026-09-01",
+        )
+        txn.set_tag.assert_any_call("model", "openai/gpt-4.1")
+        txn.set_tag.assert_any_call("game_date", "2026-09-01")
+        txn.set_tag.assert_any_call("outcome", "solved")
+        txn.set_data.assert_any_call("mistakes", 1)
+        txn.set_data.assert_any_call("llm_wait_s", 2.5)
+        txn.set_data.assert_any_call("total_cost", 0.01)
+
+    def test_run_game_is_wrapped(self):
+        assert run_game.__wrapped__.__name__ == "run_game"
+
+
+class TestMonitorNightlyJob:
+    def test_passthrough_when_crons_disabled(self, monkeypatch):
         monkeypatch.setenv("SENTRY_DSN", "https://key@example.com/1")
         monkeypatch.delenv("DATA_BUCKET", raising=False)
         monkeypatch.delenv("SENTRY_MONITOR_SLUG", raising=False)
         monkeypatch.setenv("SENTRY_CRONS", "auto")
 
-        with patch("llm_connections.telemetry.capture_checkin") as checkin:
-            with telemetry.nightly_checkin() as finish:
-                finish(True)
+        @telemetry.monitor_nightly_job
+        def stub(*, models=None):
+            return 2
 
+        with patch("llm_connections.telemetry.capture_checkin") as checkin:
+            assert stub(models=["m"]) == 2
         checkin.assert_not_called()
 
-    def test_sends_ok_when_cloud_and_success(self, monkeypatch):
+    def test_sends_ok_when_zero_failures(self, monkeypatch):
         monkeypatch.setenv("SENTRY_DSN", "https://key@example.com/1")
         monkeypatch.setenv("DATA_BUCKET", "bucket")
         monkeypatch.setenv("SENTRY_CRONS", "auto")
+
+        @telemetry.monitor_nightly_job
+        def stub(*, models=None):
+            return 0
 
         with patch(
             "llm_connections.telemetry.capture_checkin",
             return_value="check-1",
         ) as checkin:
-            with telemetry.nightly_checkin() as finish:
-                finish(True)
+            assert stub() == 0
 
         assert checkin.call_count == 2
         assert checkin.call_args_list[0].kwargs["status"] == telemetry.MonitorStatus.IN_PROGRESS
@@ -121,16 +189,19 @@ class TestNightlyCheckin:
         assert checkin.call_args_list[1].kwargs["check_in_id"] == "check-1"
         assert checkin.call_args_list[0].kwargs["monitor_slug"] == "llm-connections-nightly"
 
-    def test_sends_error_on_failure_flag(self, monkeypatch):
+    def test_sends_error_when_failures(self, monkeypatch):
         monkeypatch.setenv("SENTRY_DSN", "https://key@example.com/1")
         monkeypatch.setenv("SENTRY_CRONS", "1")
+
+        @telemetry.monitor_nightly_job
+        def stub(*, models=None):
+            return 3
 
         with patch(
             "llm_connections.telemetry.capture_checkin",
             return_value="check-1",
         ) as checkin:
-            with telemetry.nightly_checkin() as finish:
-                finish(False)
+            assert stub() == 3
 
         assert checkin.call_args_list[1].kwargs["status"] == telemetry.MonitorStatus.ERROR
 
@@ -138,12 +209,18 @@ class TestNightlyCheckin:
         monkeypatch.setenv("SENTRY_DSN", "https://key@example.com/1")
         monkeypatch.setenv("SENTRY_CRONS", "1")
 
+        @telemetry.monitor_nightly_job
+        def stub(*, models=None):
+            raise RuntimeError("boom")
+
         with patch(
             "llm_connections.telemetry.capture_checkin",
             return_value="check-1",
         ) as checkin:
             with pytest.raises(RuntimeError, match="boom"):
-                with telemetry.nightly_checkin() as _finish:
-                    raise RuntimeError("boom")
+                stub()
 
         assert checkin.call_args_list[1].kwargs["status"] == telemetry.MonitorStatus.ERROR
+
+    def test_run_nightly_is_wrapped(self):
+        assert run_nightly.__wrapped__.__name__ == "run_nightly"

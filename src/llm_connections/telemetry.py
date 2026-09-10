@@ -1,4 +1,4 @@
-"""Sentry error reporting and nightly cron check-ins.
+"""Sentry error reporting, per-game transactions, and nightly cron check-ins.
 
 Enabled when ``SENTRY_DSN`` is set (Secret Manager on the Cloud Run Job).
 Local CLI stays quiet unless you export a DSN for debugging.
@@ -6,11 +6,9 @@ Local CLI stays quiet unless you export a DSN for debugging.
 
 from __future__ import annotations
 
+import functools
 import os
-from collections.abc import Iterator
-from contextlib import contextmanager
 from datetime import date
-from typing import Callable
 
 import sentry_sdk
 from sentry_sdk.crons import capture_checkin
@@ -20,8 +18,6 @@ from sentry_sdk.crons.consts import MonitorStatus
 DEFAULT_MONITOR_SLUG = "llm-connections-nightly"
 DEFAULT_MONITOR_SCHEDULE = "0 6 * * *"
 DEFAULT_MONITOR_TIMEZONE = "America/New_York"
-
-FinishCheckin = Callable[[bool], None]
 
 
 def init_sentry(*, command: str | None = None) -> bool:
@@ -83,65 +79,83 @@ def capture_sync_failure(returncode: int) -> None:
         )
 
 
-@contextmanager
-def nightly_checkin() -> Iterator[FinishCheckin]:
-    """Send Sentry Cron check-ins for the cloud nightly Job.
+def record_game(func):
+    """Wrap ``run_game`` in a Sentry performance transaction when DSN is set."""
 
-    Enabled when ``SENTRY_DSN`` is set and either ``DATA_BUCKET`` is set
-    (Cloud Run Job) or ``SENTRY_MONITOR_SLUG`` / ``SENTRY_CRONS=1`` forces it.
-    Disable with ``SENTRY_CRONS=0``.
+    @functools.wraps(func)
+    def wrapper(date: date, model: str = "openai/gpt-4.1", force: bool = False):
+        if not _dsn_configured():
+            return func(date=date, model=model, force=force)
+        with sentry_sdk.start_transaction(
+            op="task.game",
+            name=f"run_game {model} {date.isoformat()}",
+        ) as transaction:
+            transaction.set_tag("model", model)
+            transaction.set_tag("game_date", date.isoformat())
 
-    Yields ``finish(success: bool)``. Call it after ``run_nightly`` so a
-    non-zero failure count marks the monitor ERROR even without an exception.
-    """
-    if not _crons_enabled():
-        yield lambda _success: None
-        return
+            game_metadata = func(date=date, model=model, force=force)
 
-    slug = os.environ.get("SENTRY_MONITOR_SLUG", "").strip() or DEFAULT_MONITOR_SLUG
-    schedule = (
-        os.environ.get("SENTRY_MONITOR_SCHEDULE", "").strip() or DEFAULT_MONITOR_SCHEDULE
-    )
-    timezone = (
-        os.environ.get("SENTRY_MONITOR_TIMEZONE", "").strip() or DEFAULT_MONITOR_TIMEZONE
-    )
-    monitor_config = {
-        "schedule": {"type": "crontab", "value": schedule},
-        "timezone": timezone,
-        "checkin_margin": 30,
-        # Match Cloud Run Job --task-timeout=24h
-        "max_runtime": 1440,
-        "failure_issue_threshold": 1,
-        "recovery_threshold": 1,
-    }
+            transaction.set_tag("outcome", game_metadata.outcome)
+            transaction.set_data("mistakes", game_metadata.mistakes)
+            transaction.set_data("invalid_guesses", game_metadata.invalid_guesses)
+            transaction.set_data("solved_groups", game_metadata.solved_groups)
+            transaction.set_data("llm_wait_s", game_metadata.llm_wait_s)
+            transaction.set_data("input_tokens", game_metadata.input_tokens)
+            transaction.set_data("output_tokens", game_metadata.output_tokens)
+            transaction.set_data("total_cost", game_metadata.total_cost)
+            return game_metadata
 
-    check_in_id = capture_checkin(
-        monitor_slug=slug,
-        status=MonitorStatus.IN_PROGRESS,
-        monitor_config=monitor_config,
-    )
-    finished = False
+    return wrapper
 
-    def finish(success: bool) -> None:
-        nonlocal finished
-        if finished:
-            return
-        capture_checkin(
+
+def monitor_nightly_job(func):
+    """Cron check-ins around ``run_nightly``; OK when returned failure count is 0."""
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        if not _crons_enabled():
+            return func(*args, **kwargs)
+        slug = os.environ.get("SENTRY_MONITOR_SLUG", "").strip() or DEFAULT_MONITOR_SLUG
+        schedule = (
+            os.environ.get("SENTRY_MONITOR_SCHEDULE", "").strip() or DEFAULT_MONITOR_SCHEDULE
+        )
+        timezone = (
+            os.environ.get("SENTRY_MONITOR_TIMEZONE", "").strip() or DEFAULT_MONITOR_TIMEZONE
+        )
+        monitor_config = {
+            "schedule": {"type": "crontab", "value": schedule},
+            "timezone": timezone,
+            "checkin_margin": 30,
+            # Match Cloud Run Job --task-timeout=24h
+            "max_runtime": 1440,
+            "failure_issue_threshold": 1,
+            "recovery_threshold": 1,
+        }
+
+        check_in_id = capture_checkin(
             monitor_slug=slug,
-            check_in_id=check_in_id,
-            status=MonitorStatus.OK if success else MonitorStatus.ERROR,
+            status=MonitorStatus.IN_PROGRESS,
             monitor_config=monitor_config,
         )
-        finished = True
+        try:
+            num_failed = func(*args, **kwargs)
+            capture_checkin(
+                monitor_slug=slug,
+                check_in_id=check_in_id,
+                status=MonitorStatus.OK if num_failed == 0 else MonitorStatus.ERROR,
+                monitor_config=monitor_config,
+            )
+            return num_failed
+        except BaseException:
+            capture_checkin(
+                monitor_slug=slug,
+                check_in_id=check_in_id,
+                status=MonitorStatus.ERROR,
+                monitor_config=monitor_config,
+            )
+            raise
 
-    try:
-        yield finish
-    except BaseException:
-        finish(False)
-        raise
-    else:
-        if not finished:
-            finish(True)
+    return wrapper
 
 
 def _dsn_configured() -> bool:
