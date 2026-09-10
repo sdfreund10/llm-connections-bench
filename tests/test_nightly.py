@@ -16,7 +16,7 @@ def test_get_date_range(monkeypatch):
             return fixed.astimezone(tz)
 
     monkeypatch.setattr("llm_connections.nightly.datetime", FakeDateTime)
-    assert _get_date_range() == (date(2026, 9, 2), date(2026, 9, 9))
+    assert _get_date_range() == (date(2026, 9, 1), date(2026, 9, 8))
 
 
 class TestRunGameForDate:
@@ -76,6 +76,8 @@ class TestRunNightly:
                 "llm_connections.nightly._run_game_for_date",
                 side_effect=["done", "failed", "skipped", "failed"],
             ) as run_one,
+            patch("llm_connections.nightly._sync_results") as sync,
+
         ):
             failed = run_nightly(models=["m1", "m2"])
 
@@ -83,6 +85,7 @@ class TestRunNightly:
         assert run_one.call_count == 4
         assert failed == 2
         assert "ran=1 skipped=1 failed=2" in capsys.readouterr().out
+        sync.assert_called_once()
 
     def test_uses_default_models_when_none_passed(self):
         with (
@@ -96,7 +99,9 @@ class TestRunNightly:
                 "llm_connections.nightly._run_game_for_date",
                 return_value="done",
             ) as run_one,
+            patch("llm_connections.nightly._sync_results") as sync,
         ):
             assert run_nightly(models=None) == 0
 
         run_one.assert_called_once_with(date(2026, 9, 1), "default-a")
+        sync.assert_called_once()

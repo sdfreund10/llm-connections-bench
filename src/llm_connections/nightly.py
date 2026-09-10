@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
 
 from llm_connections.backfill import MODELS
 from llm_connections.engine import run_game
@@ -12,7 +11,7 @@ from llm_connections.log import GameAlreadyCompletedError, has_completed_entry
 
 
 def _get_date_range() -> tuple[date, date]:
-    end_date = datetime.now(timezone.utc).date()
+    end_date = datetime.now(timezone.utc).date() - timedelta(days=1)
     beginning_date = end_date - timedelta(days=7)
     return beginning_date, end_date
 
@@ -49,15 +48,37 @@ def run_nightly(
     ran = skipped = failed = 0
     for model in suite:
         day = beginning_date
+        model_updates = 0
         while day <= end_date:
             result = _run_game_for_date(day, model)
             day += timedelta(days=1)
             if result == 'done':
                 ran += 1
+                model_updates += 1
             elif result == 'skipped':
                 skipped += 1
             elif result == 'failed':
                 failed += 1
+        
+        # sync results back to once per model.
+        if model_updates > 0:
+            _sync_results()
 
     print(f"\nNightly done — ran={ran} skipped={skipped} failed={failed}")
     return failed
+
+from pathlib import Path
+SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "sync_data.sh"
+
+def _sync_results() -> None:
+    """
+    ONLY USE IN CLOUD.
+    Pushes data files up to GCS.
+    """
+    import subprocess
+    result = subprocess.run(
+        [str(SCRIPT), "push"],
+        check=False,  # don't raise on failure
+    )
+    if result.returncode != 0:
+        print(f"warning: sync_data.sh push exited {result.returncode}")
