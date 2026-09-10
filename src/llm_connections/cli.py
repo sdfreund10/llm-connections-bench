@@ -11,6 +11,7 @@ from llm_connections.engine import run_game
 from llm_connections.game import download_connections, most_recent_date
 from llm_connections.log import GameAlreadyCompletedError, list_results
 from llm_connections.nightly import run_nightly
+from llm_connections.telemetry import init_sentry, nightly_checkin
 
 
 def _parse_date(value: str) -> date:
@@ -82,7 +83,10 @@ def cmd_backfill(args: argparse.Namespace) -> None:
 
 def cmd_nightly(args: argparse.Namespace) -> None:
     models = args.model or None
-    failed = run_nightly(models=models)
+    # Wrap nightly run in a checkin to report start/end times, and capture runtime exceptions.
+    with nightly_checkin() as finish:
+        failed = run_nightly(models=models)
+        finish(failed == 0)
     if failed:
         raise SystemExit(1)
 
@@ -171,6 +175,7 @@ def main() -> None:
     nightly_parser.set_defaults(func=cmd_nightly)
 
     args = parser.parse_args()
+    init_sentry(command=args.command)
     args.func(args)
 
 

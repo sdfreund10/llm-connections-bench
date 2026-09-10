@@ -6,6 +6,7 @@ from datetime import date, timedelta
 
 from llm_connections.engine import run_game
 from llm_connections.log import GameAlreadyCompletedError, list_results, has_completed_entry
+from llm_connections.telemetry import capture_run_failure
 
 DEFAULT_START = date(2026, 8, 15)
 DEFAULT_END = date(2026, 9, 4)
@@ -87,6 +88,7 @@ def run_backfill(
             except Exception as exc:
                 failed += 1
                 print(f"[{day}] ERROR for {model}: {exc}")
+                capture_run_failure(exc, game_date=day, model=model)
             day += timedelta(days=1)
 
     print(f"\nDone — ran={ran} skipped={skipped} failed={failed}")

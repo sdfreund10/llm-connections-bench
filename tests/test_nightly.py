@@ -1,8 +1,8 @@
 from datetime import date, datetime, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from llm_connections.log import GameAlreadyCompletedError
-from llm_connections.nightly import _get_date_range, _run_game_for_date, run_nightly
+from llm_connections.nightly import _get_date_range, _run_game_for_date, _sync_results, run_nightly
 
 
 def test_get_date_range(monkeypatch):
@@ -58,10 +58,14 @@ class TestRunGameForDate:
                 "llm_connections.nightly.run_game",
                 side_effect=RuntimeError("network"),
             ),
+            patch("llm_connections.nightly.capture_run_failure") as capture,
         ):
             assert _run_game_for_date(date(2026, 9, 1), "model-a") == "failed"
 
         assert "ERROR" in capsys.readouterr().out
+        capture.assert_called_once()
+        assert capture.call_args.kwargs["game_date"] == date(2026, 9, 1)
+        assert capture.call_args.kwargs["model"] == "model-a"
 
 
 class TestRunNightly:
@@ -105,3 +109,15 @@ class TestRunNightly:
 
         run_one.assert_called_once_with(date(2026, 9, 1), "default-a")
         sync.assert_called_once()
+
+
+def test_sync_results_reports_soft_failure():
+    completed = MagicMock(returncode=2)
+    with (
+        patch("subprocess.run", return_value=completed) as run,
+        patch("llm_connections.nightly.capture_sync_failure") as capture,
+    ):
+        _sync_results()
+
+    run.assert_called_once()
+    capture.assert_called_once_with(2)

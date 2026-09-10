@@ -26,12 +26,16 @@ class TestRunBackfill:
         with (
             patch("llm_connections.backfill.has_completed_entry", side_effect=has_completed),
             patch("llm_connections.backfill.run_game", side_effect=run_game) as run,
+            patch("llm_connections.backfill.capture_run_failure") as capture,
         ):
             run_backfill(start=start, end=end, models=["model-a"])
 
         assert run.call_count == 2
         out = capsys.readouterr().out
         assert "ran=1 skipped=1 failed=1" in out
+        capture.assert_called_once()
+        assert capture.call_args.kwargs["model"] == "model-a"
+        assert capture.call_args.kwargs["game_date"] == date(2026, 9, 3)
 
     def test_treats_already_completed_error_as_skip(self, capsys):
         with (

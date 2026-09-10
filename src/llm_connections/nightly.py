@@ -8,6 +8,7 @@ from llm_connections.backfill import MODELS
 from llm_connections.engine import run_game
 from llm_connections.game import download_connections
 from llm_connections.log import GameAlreadyCompletedError, has_completed_entry
+from llm_connections.telemetry import capture_run_failure, capture_sync_failure
 
 
 def _get_date_range() -> tuple[date, date]:
@@ -15,7 +16,7 @@ def _get_date_range() -> tuple[date, date]:
     beginning_date = end_date - timedelta(days=7)
     return beginning_date, end_date
 
-def _run_game_for_date(target: date, model: str) -> None:
+def _run_game_for_date(target: date, model: str) -> str:
     if has_completed_entry(target, model):
         print(f"[{target}] skip — entry exists for {model}")
         return 'skipped'
@@ -28,6 +29,7 @@ def _run_game_for_date(target: date, model: str) -> None:
         return 'skipped'
     except Exception as exc:
         print(f"[{target}] ERROR for {model}: {exc}")
+        capture_run_failure(exc, game_date=target, model=model)
         return 'failed'
 
 def run_nightly(
@@ -82,3 +84,4 @@ def _sync_results() -> None:
     )
     if result.returncode != 0:
         print(f"warning: sync_data.sh push exited {result.returncode}")
+        capture_sync_failure(result.returncode)
