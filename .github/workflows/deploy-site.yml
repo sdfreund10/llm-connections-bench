@@ -52,4 +52,4 @@ jobs:
 
       - name: Publish to assets bucket
         run: |
-          gcloud storage rsync --delete-unmatched-destination-objects site/dist "gs://${SITE_BUCKET}"
+          gcloud storage rsync --delete-unmatched-destination-objects --recursive site/dist "gs://${SITE_BUCKET}"

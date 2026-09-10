@@ -1,5 +1,4 @@
 import json
-import os
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
@@ -13,6 +12,7 @@ from llm_connections.game import (
     _file_exists,
     _file_is_up_to_date,
     download_connections,
+    most_recent_date,
 )
 
 SAMPLE_ANSWERS = [
@@ -326,6 +326,52 @@ class TestCheckGuess:
         assert game.groups[1].solved is True
         assert game.groups[1].name == "NBA TEAMS"
 
+    def test_increments_mistakes_on_incorrect_guess(self):
+        game = Game(SAMPLE_GAME)
+
+        game.check_guess(["HAIL", "BUCKS", "OPTION", "KAYAK"])
+
+        assert game.mistakes == 1
+        assert game.is_lost() is False
+
+    def test_is_lost_after_four_mistakes(self):
+        game = Game(SAMPLE_GAME)
+        wrong_guesses = [
+            ["HAIL", "BUCKS", "OPTION", "KAYAK"],
+            ["HAIL", "BUCKS", "OPTION", "LEVEL"],
+            ["HAIL", "BUCKS", "OPTION", "MOM"],
+            ["HAIL", "BUCKS", "OPTION", "RACECAR"],
+        ]
+
+        for guess in wrong_guesses:
+            assert game.check_guess(guess) is None
+
+        assert game.mistakes == 4
+        assert game.is_lost() is True
+
+    def test_raises_when_guessing_after_loss(self):
+        game = Game(SAMPLE_GAME)
+        game.mistakes = 4
+
+        with pytest.raises(InvalidGuessError, match="too many mistakes"):
+            game.check_guess(["HAIL", "RAIN", "SLEET", "SNOW"])
+
+    def test_is_solved_when_all_groups_are_solved(self):
+        game = Game(SAMPLE_GAME)
+        assert game.is_solved() is False
+
+        for group in game.groups:
+            group.solved = True
+
+        assert game.is_solved() is True
+        assert game.solved_groups() == game.groups
+        assert game.solved_entries() == game.all_entries()
+        assert game.unsolved_entries() == []
+
+    def test_day_returns_date(self):
+        game = Game(SAMPLE_GAME)
+        assert game.day() == datetime(2026, 9, 15).date()
+
 
 class TestFileHelpers:
     def test_file_exists_when_present(self, connections_path):
@@ -339,22 +385,66 @@ class TestFileHelpers:
     def test_file_is_not_up_to_date_when_missing(self, connections_path):
         assert _file_is_up_to_date() is False
 
-    def test_file_is_up_to_date_when_recently_modified(self, connections_path):
+    def test_file_is_not_up_to_date_when_empty(self, connections_path):
         connections_path.write_text("[]")
+
+        assert _file_is_up_to_date() is False
+
+    def test_file_is_up_to_date_when_latest_puzzle_is_today(self, connections_path):
+        today = datetime.now().date().isoformat()
+        connections_path.write_text(
+            json.dumps([{"id": 1, "date": today, "answers": SAMPLE_ANSWERS}])
+        )
 
         assert _file_is_up_to_date() is True
 
-    def test_file_is_stale_when_older_than_one_day(self, connections_path):
-        connections_path.write_text("[]")
-        stale_mtime = (datetime.now() - timedelta(hours=25)).timestamp()
-        os.utime(connections_path, (stale_mtime, stale_mtime))
+    def test_file_is_up_to_date_when_latest_puzzle_is_yesterday(self, connections_path):
+        yesterday = (datetime.now().date() - timedelta(days=1)).isoformat()
+        connections_path.write_text(
+            json.dumps([{"id": 1, "date": yesterday, "answers": SAMPLE_ANSWERS}])
+        )
+
+        assert _file_is_up_to_date() is True
+
+    def test_file_is_stale_when_latest_puzzle_is_older_than_one_day(
+        self, connections_path
+    ):
+        old = (datetime.now().date() - timedelta(days=2)).isoformat()
+        connections_path.write_text(
+            json.dumps([{"id": 1, "date": old, "answers": SAMPLE_ANSWERS}])
+        )
 
         assert _file_is_up_to_date() is False
 
 
+class TestMostRecentDate:
+    def test_returns_none_when_missing(self, connections_path):
+        assert most_recent_date() is None
+
+    def test_returns_none_when_empty(self, connections_path):
+        connections_path.write_text("[]")
+        assert most_recent_date() is None
+
+    def test_returns_latest_puzzle_date(self, connections_path):
+        connections_path.write_text(
+            json.dumps(
+                [
+                    {"id": 1, "date": "2026-09-01", "answers": SAMPLE_ANSWERS},
+                    {"id": 2, "date": "2026-09-10", "answers": SAMPLE_ANSWERS},
+                    {"id": 3, "date": "2026-09-05", "answers": SAMPLE_ANSWERS},
+                ]
+            )
+        )
+
+        assert most_recent_date() == datetime(2026, 9, 10).date()
+
+
 class TestDownloadConnections:
     def test_skips_download_when_file_is_fresh(self, connections_path):
-        connections_path.write_text("[]")
+        today = datetime.now().date().isoformat()
+        connections_path.write_text(
+            json.dumps([{"id": 1, "date": today, "answers": SAMPLE_ANSWERS}])
+        )
 
         with patch("llm_connections.game.requests.get") as get:
             download_connections()
@@ -373,6 +463,21 @@ class TestDownloadConnections:
             "https://github.com/Eyefyre/NYT-Connections-Answers/raw/main/connections.json"
         )
         response.raise_for_status.assert_called_once()
+        assert json.loads(connections_path.read_text()) == payload
+
+    def test_downloads_when_latest_puzzle_is_stale(self, connections_path):
+        old = (datetime.now().date() - timedelta(days=2)).isoformat()
+        connections_path.write_text(
+            json.dumps([{"id": 1, "date": old, "answers": SAMPLE_ANSWERS}])
+        )
+        payload = [{"id": 2, "date": datetime.now().date().isoformat(), "answers": []}]
+        response = Mock()
+        response.json.return_value = payload
+
+        with patch("llm_connections.game.requests.get", return_value=response) as get:
+            download_connections()
+
+        get.assert_called_once()
         assert json.loads(connections_path.read_text()) == payload
 
     def test_raises_when_request_fails(self, connections_path):

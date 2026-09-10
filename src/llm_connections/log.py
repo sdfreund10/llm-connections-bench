@@ -1,10 +1,11 @@
-import datetime
+from datetime import date, datetime, timedelta
 import json
 from pathlib import Path
 from typing import Any
 import os
 
-LOG_FILE = os.path.join(os.path.dirname(__file__), "..", "..", "data", "games.json")
+DATA_DIR = os.getenv("DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "data"))
+LOG_FILE = os.path.join(DATA_DIR, "games.json")
 
 STATUS_IN_PROGRESS = "in_progress"
 STATUS_COMPLETED = "completed"
@@ -12,8 +13,8 @@ STATUS_COMPLETED = "completed"
 class GameAlreadyCompletedError(Exception):
     """Raised when a completed game is re-run without force=True."""
 
-def _date_key(date: datetime.date | datetime.datetime) -> str:
-    day = date.date() if isinstance(date, datetime.datetime) else date
+def _date_key(date: date | datetime) -> str:
+    day = date.date() if isinstance(date, datetime) else date
     return day.isoformat()
 
 
@@ -48,8 +49,14 @@ def _set_run(data: dict[str, Any], date_key: str, llm_model: str, run: dict[str,
 def _is_completed(run: dict[str, Any] | None) -> bool:
     return run is not None and run.get("status") == STATUS_COMPLETED
 
+def has_completed_entry(day: date, model: str) -> bool:
+    data = _load_log()
+    date_key = _date_key(day)
+    run = _get_run(data, date_key, model)
+    return _is_completed(run)
 
-def start_run(date: datetime.date, llm_model: str, force: bool = False) -> None:
+
+def start_run(date: date, llm_model: str, force: bool = False) -> None:
     data = _load_log()
     date_key = _date_key(date)
     existing = _get_run(data, date_key, llm_model)
@@ -67,7 +74,7 @@ def start_run(date: datetime.date, llm_model: str, force: bool = False) -> None:
     _save_log(data)
 
 
-def log_guess(date: datetime.date, llm_model: str, guess: dict) -> None:
+def log_guess(date: date, llm_model: str, guess: dict) -> None:
     data = _load_log()
     date_key = _date_key(date)
     run = _get_run(data, date_key, llm_model)
@@ -81,7 +88,7 @@ def log_guess(date: datetime.date, llm_model: str, guess: dict) -> None:
 
 
 def complete_run(
-    date: datetime.date,
+    date: date,
     llm_model: str,
     *,
     outcome: str,
@@ -114,8 +121,8 @@ def complete_run(
 
 
 def list_results(
-    start: datetime.date,
-    end: datetime.date,
+    start: date,
+    end: date,
     llm_model: str,
 ) -> list[dict[str, Any]]:
     data = _load_log()
@@ -126,5 +133,5 @@ def list_results(
         run = _get_run(data, date_key, llm_model)
         if run is not None:
             results.append({"date": date_key, **run})
-        day += datetime.timedelta(days=1)
+        day += timedelta(days=1)
     return results

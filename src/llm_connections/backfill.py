@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 from llm_connections.engine import run_game
-from llm_connections.log import GameAlreadyCompletedError, list_results
+from llm_connections.log import GameAlreadyCompletedError, list_results, has_completed_entry
 
 DEFAULT_START = date(2026, 8, 15)
 DEFAULT_END = date(2026, 9, 4)
@@ -55,9 +55,6 @@ MODELS: list[str] = [
 # xAI: grok-4.3 → grok-4.5 → grok-4.6
 # Qwen: qwen3.8-flash → qwen3.8-27b → qwen3.8-2.4t-a95b
 
-def _has_entry(day: date, model: str) -> bool:
-    return bool(list_results(day, day, model))
-
 
 def run_backfill(
     start: date = DEFAULT_START,
@@ -74,7 +71,7 @@ def run_backfill(
         print(f"\n=== {model} ({start} → {end}) ===")
         day = start
         while day <= end:
-            if _has_entry(day, model):
+            if has_completed_entry(day, model):
                 print(f"[{day}] skip — entry exists for {model}")
                 skipped += 1
                 day += timedelta(days=1)

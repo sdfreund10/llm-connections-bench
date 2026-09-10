@@ -1,7 +1,8 @@
 from datetime import date, datetime, timezone
-from zoneinfo import ZoneInfo
+from unittest.mock import patch
 
-from llm_connections.nightly import _get_date_range
+from llm_connections.log import GameAlreadyCompletedError
+from llm_connections.nightly import _get_date_range, _run_game_for_date, run_nightly
 
 
 def test_get_date_range(monkeypatch):
@@ -16,3 +17,86 @@ def test_get_date_range(monkeypatch):
 
     monkeypatch.setattr("llm_connections.nightly.datetime", FakeDateTime)
     assert _get_date_range() == (date(2026, 9, 2), date(2026, 9, 9))
+
+
+class TestRunGameForDate:
+    def test_skips_when_completed_entry_exists(self, capsys):
+        with (
+            patch("llm_connections.nightly.has_completed_entry", return_value=True),
+            patch("llm_connections.nightly.run_game") as run,
+        ):
+            result = _run_game_for_date(date(2026, 9, 1), "model-a")
+
+        assert result == "skipped"
+        run.assert_not_called()
+        assert "skip" in capsys.readouterr().out
+
+    def test_returns_done_on_success(self):
+        with (
+            patch("llm_connections.nightly.has_completed_entry", return_value=False),
+            patch("llm_connections.nightly.run_game") as run,
+        ):
+            result = _run_game_for_date(date(2026, 9, 1), "model-a")
+
+        assert result == "done"
+        run.assert_called_once_with(date(2026, 9, 1), model="model-a", force=False)
+
+    def test_returns_skipped_on_already_completed(self):
+        with (
+            patch("llm_connections.nightly.has_completed_entry", return_value=False),
+            patch(
+                "llm_connections.nightly.run_game",
+                side_effect=GameAlreadyCompletedError("already done"),
+            ),
+        ):
+            assert _run_game_for_date(date(2026, 9, 1), "model-a") == "skipped"
+
+    def test_returns_failed_on_other_errors(self, capsys):
+        with (
+            patch("llm_connections.nightly.has_completed_entry", return_value=False),
+            patch(
+                "llm_connections.nightly.run_game",
+                side_effect=RuntimeError("network"),
+            ),
+        ):
+            assert _run_game_for_date(date(2026, 9, 1), "model-a") == "failed"
+
+        assert "ERROR" in capsys.readouterr().out
+
+
+class TestRunNightly:
+    def test_downloads_then_counts_failures(self, capsys):
+        with (
+            patch("llm_connections.nightly.download_connections") as download,
+            patch(
+                "llm_connections.nightly._get_date_range",
+                return_value=(date(2026, 9, 1), date(2026, 9, 2)),
+            ),
+            patch(
+                "llm_connections.nightly._run_game_for_date",
+                side_effect=["done", "failed", "skipped", "failed"],
+            ) as run_one,
+        ):
+            failed = run_nightly(models=["m1", "m2"])
+
+        download.assert_called_once()
+        assert run_one.call_count == 4
+        assert failed == 2
+        assert "ran=1 skipped=1 failed=2" in capsys.readouterr().out
+
+    def test_uses_default_models_when_none_passed(self):
+        with (
+            patch("llm_connections.nightly.download_connections"),
+            patch(
+                "llm_connections.nightly._get_date_range",
+                return_value=(date(2026, 9, 1), date(2026, 9, 1)),
+            ),
+            patch("llm_connections.nightly.MODELS", ["default-a"]),
+            patch(
+                "llm_connections.nightly._run_game_for_date",
+                return_value="done",
+            ) as run_one,
+        ):
+            assert run_nightly(models=None) == 0
+
+        run_one.assert_called_once_with(date(2026, 9, 1), "default-a")

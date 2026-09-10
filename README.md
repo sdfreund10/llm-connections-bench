@@ -7,7 +7,7 @@ uv run llm-connections run 2026-09-01 2026-09-06 openai/gpt-4.1
 # Backfill the benchmark suite (skips existing entries; defaults 2026-08-15 → 2026-09-04)
 uv run llm-connections backfill
 uv run llm-connections backfill 2026-08-15 2026-09-04 --model z-ai/glm-5.3-flash
-# Nightly: refresh puzzles and run the model suite for yesterday (or --date)
+# Nightly: refresh puzzles and run the model suite for the week leading up to yesterday
 uv run llm-connections nightly
 ```
 

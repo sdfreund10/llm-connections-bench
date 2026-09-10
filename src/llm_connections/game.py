@@ -2,11 +2,12 @@
 import os
 import json
 import requests
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 CONNECTIONS_URL = "https://github.com/Eyefyre/NYT-Connections-Answers/raw/main/connections.json"
-CONNECTIONS_FILE = os.path.join(os.path.dirname(__file__), "..", "..", "data", "connections.json")
+DATA_DIR = os.getenv("DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "data"))
+CONNECTIONS_FILE = os.path.join(DATA_DIR, "connections.json")
 
 class FileNotFoundError(Exception):
     """Raised when the connections file is not found."""
@@ -15,12 +16,15 @@ class FileNotFoundError(Exception):
 def _file_exists():
     file_path = Path(CONNECTIONS_FILE)
     return file_path.exists()
+
 def _file_is_up_to_date():
     if not _file_exists():
         return False
-    file_path = Path(CONNECTIONS_FILE)
-    last_modified = file_path.stat().st_mtime
-    return last_modified is not None and last_modified > datetime.now().timestamp() - 24 * 60 * 60
+    latest_puzzle_date = most_recent_date()
+    if latest_puzzle_date is None:
+        return False
+
+    return latest_puzzle_date >= datetime.now().date() - timedelta(days=1)
 
 
 def download_connections():
@@ -40,7 +44,9 @@ def most_recent_date():
         return None
     with open(CONNECTIONS_FILE, "r") as f:
         entries = json.load(f)
-        return max(datetime.strptime(entry["date"], "%Y-%m-%d") for entry in entries)
+        if len(entries) == 0:
+            return None
+        return max(datetime.strptime(entry["date"], "%Y-%m-%d") for entry in entries).date()
 
 class Group:
     def __init__(self, data: dict):

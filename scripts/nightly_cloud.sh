@@ -15,7 +15,10 @@ echo "==> Pull data from gs://${DATA_BUCKET}"
 "$ROOT/scripts/sync_data.sh" pull
 
 echo "==> Run nightly"
+set +e
 uv run llm-connections nightly "$@"
+nightly_status=$?
+set -e
 
 echo "==> Push data to gs://${DATA_BUCKET}"
 "$ROOT/scripts/sync_data.sh" push
@@ -26,6 +29,7 @@ npm ci
 DATA_DIR="$DATA_DIR" npm run build
 
 echo "==> Publish dist/ to gs://${SITE_BUCKET}"
-gcloud storage rsync --delete "$ROOT/site/dist" "gs://${SITE_BUCKET}"
+gcloud storage rsync --delete-unmatched-destination-objects --recursive "$ROOT/site/dist" "gs://${SITE_BUCKET}"
 
 echo "==> Nightly cloud job finished"
+exit "$nightly_status"

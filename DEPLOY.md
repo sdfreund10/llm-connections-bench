@@ -33,11 +33,7 @@ Core CLI modules (`game.py`, `log.py`) always read/write local files.
 
 ```bash
 uv run llm-connections nightly
-uv run llm-connections nightly --date 2026-09-08
-uv run llm-connections nightly --model openai/gpt-4.1-mini
 ```
-
-Default date is **yesterday** in `NIGHTLY_TZ` (default `UTC`).
 
 ## Cloud Run Job
 
@@ -79,7 +75,7 @@ gcloud run jobs create llm-connections-nightly \
   --image="$IMAGE" \
   --region="$REGION" \
   --service-account="llm-connections-nightly@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --set-env-vars="DATA_BUCKET=connections-bench-data-prod,SITE_BUCKET=connections-bench-assets-prod,NIGHTLY_TZ=America/New_York" \
+  --set-env-vars="DATA_BUCKET=connections-bench-data-prod,SITE_BUCKET=connections-bench-assets-prod" \
   --set-secrets="OPENROUTER_API_KEY=openrouter-api-key:latest" \
   --task-timeout=24h \
   --max-retries=0 \
