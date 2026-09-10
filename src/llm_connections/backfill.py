@@ -34,7 +34,7 @@ MODELS: list[str] = [
     # "z-ai/glm-5.3",
 
     # DeepSeek
-    # "deepseek/deepseek-v4-flash-0731", # EXTREMELY SLOW - might not be worth it
+    "deepseek/deepseek-v4-flash-0731", # EXTREMELY SLOW - might not be worth it
 
     # xAI
     "x-ai/grok-4.3",
