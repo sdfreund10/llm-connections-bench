@@ -113,6 +113,8 @@ Do **not** grant these secrets to the GHA service account.
 
 Sentry is a no-op when `SENTRY_DSN` is unset (local CLI). On the Job, the SDK reports swallowed per-game failures, soft GCS sync failures, and sends **Cron** check-ins for monitor slug `llm-connections-nightly` (schedule `0 6 * * *` / `America/New_York` — keep in sync with Cloud Scheduler, or override with `SENTRY_MONITOR_SCHEDULE` / `SENTRY_MONITOR_TIMEZONE`).
 
+Python hot-path logs (nightly/backfill/game/sync/update) go to stdout as structured fields (`stage`, `model`, `date`, `status`, suite counts). With `DATA_BUCKET` set the Job emits **JSON** lines (Cloud Logging–friendly); locally the default is compact text. Override with `LOG_FORMAT=json` or `LOG_FORMAT=text`. Shell stage banners in `nightly_cloud.sh` stay human-readable.
+
 ---
 
 ## 5. Workload Identity Federation for GitHub (Console)

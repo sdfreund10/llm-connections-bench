@@ -4,6 +4,7 @@ from llm_connections.llm import AIChat, ChatUsage
 from llm_connections.game import Game, InvalidGuessError
 from llm_connections.log import start_run, log_guess, complete_run
 from llm_connections.telemetry import record_game
+from llm_connections.applog import event
 
 SYSTEM_PROMPT = '''
 You are trying to solve a game of Connections.
@@ -124,5 +125,13 @@ def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False) -
         output_tokens=metadata.output_tokens,
         total_cost=metadata.total_cost,
     )
-    print(f"[{date}] Game {metadata.outcome}! ({game.mistakes} mistakes)")
+    event(
+        f"Game {metadata.outcome}",
+        stage="game",
+        model=model,
+        game_date=date,
+        status="done",
+        outcome=metadata.outcome,
+        mistakes=metadata.mistakes,
+    )
     return metadata

@@ -12,6 +12,7 @@ from llm_connections.game import download_connections, most_recent_date
 from llm_connections.log import GameAlreadyCompletedError, list_results
 from llm_connections.nightly import run_nightly
 from llm_connections.telemetry import init_sentry
+from llm_connections.applog import configure_logging
 
 
 def _parse_date(value: str) -> date:
@@ -172,6 +173,7 @@ def main() -> None:
     nightly_parser.set_defaults(func=cmd_nightly)
 
     args = parser.parse_args()
+    configure_logging()
     init_sentry(command=args.command)
     args.func(args)
 

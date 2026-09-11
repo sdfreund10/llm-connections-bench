@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import date, timedelta
 
+from llm_connections.applog import event
 from llm_connections.engine import run_game
-from llm_connections.log import GameAlreadyCompletedError, list_results, has_completed_entry
+from llm_connections.log import GameAlreadyCompletedError, has_completed_entry
 from llm_connections.telemetry import capture_run_failure
 
 DEFAULT_START = date(2026, 8, 15)
@@ -69,26 +71,65 @@ def run_backfill(
     ran = skipped = failed = 0
 
     for model in suite:
-        print(f"\n=== {model} ({start} → {end}) ===")
+        event(
+            "backfill model",
+            stage="backfill",
+            model=model,
+            status="running",
+            start=start.isoformat(),
+            end=end.isoformat(),
+        )
         day = start
         while day <= end:
             if has_completed_entry(day, model):
-                print(f"[{day}] skip — entry exists for {model}")
+                event(
+                    "skip — entry exists",
+                    stage="game",
+                    model=model,
+                    game_date=day,
+                    status="skipped",
+                )
                 skipped += 1
                 day += timedelta(days=1)
                 continue
 
             try:
-                print(f"[{day}] running {model}")
+                event(
+                    "running game",
+                    stage="game",
+                    model=model,
+                    game_date=day,
+                    status="running",
+                )
                 run_game(day, model=model, force=False)
                 ran += 1
             except GameAlreadyCompletedError as exc:
-                print(exc)
+                event(
+                    str(exc),
+                    stage="game",
+                    model=model,
+                    game_date=day,
+                    status="skipped",
+                )
                 skipped += 1
             except Exception as exc:
                 failed += 1
-                print(f"[{day}] ERROR for {model}: {exc}")
+                event(
+                    f"ERROR for {model}: {exc}",
+                    stage="game",
+                    level=logging.ERROR,
+                    model=model,
+                    game_date=day,
+                    status="failed",
+                )
                 capture_run_failure(exc, game_date=day, model=model)
             day += timedelta(days=1)
 
-    print(f"\nDone — ran={ran} skipped={skipped} failed={failed}")
+    event(
+        "backfill done",
+        stage="backfill",
+        status="done" if failed == 0 else "failed",
+        ran=ran,
+        skipped=skipped,
+        failed=failed,
+    )
