@@ -44,7 +44,7 @@ MODELS: list[str] = [
     # "x-ai/grok-4.6",
 
     # Qwen
-    "qwen/qwen3.8-flash",
+    # "qwen/qwen3.8-flash",
     # "qwen/qwen3.8-27b",
     # "qwen/qwen3.8-2.4t-a95b",
 ]
