@@ -13,7 +13,7 @@ Local development does **not** use GCS. Leave `DATA_BUCKET` unset and use `data/
 | Nightly worker | Cloud Run **Job** running [`scripts/nightly_cloud.sh`](scripts/nightly_cloud.sh) |
 | Site (code) deploys | GitHub Action [`.github/workflows/deploy-site.yml`](.github/workflows/deploy-site.yml) |
 | Image builds | GitHub Action [`.github/workflows/build-image.yml`](.github/workflows/build-image.yml) → Artifact Registry |
-| Secrets | `OPENROUTER_API_KEY` in Secret Manager (Job SA only — not the GitHub Actions SA) |
+| Secrets | `OPENROUTER_API_KEY` and `SENTRY_DSN` in Secret Manager (Job SA only — not the GitHub Actions SA) |
 
 ```text
 Cloud Scheduler
@@ -98,6 +98,7 @@ Suggested roles (project-level is fine for a small project; tighten to buckets/r
 |--------|-----|
 | Object Admin on **both** buckets | Pull/push JSON; publish `dist/` |
 | Secret Manager Secret Accessor on `openrouter-api-key` | LLM calls |
+| Secret Manager Secret Accessor on `sentry-dsn` | Sentry error + cron reporting |
 | (Invoker setup) | Scheduler must be allowed to run the Job — see below |
 
 ---
@@ -105,9 +106,14 @@ Suggested roles (project-level is fine for a small project; tighten to buckets/r
 ## 4. Secret Manager (Console)
 
 1. **Secret Manager** → **Create secret** → name `openrouter-api-key` → paste OpenRouter API key
-2. Grant **Secret Manager Secret Accessor** on that secret to `llm-connections-nightly@…`
+2. **Create secret** → name `sentry-dsn` → paste the DSN from Sentry project **Settings → Client Keys (DSN)** (org `steve-freund`, project `connections-bench`)
+3. Grant **Secret Manager Secret Accessor** on both secrets to `llm-connections-nightly@…`
 
-Do **not** grant this secret to the GHA service account.
+Do **not** grant these secrets to the GHA service account.
+
+Sentry is a no-op when `SENTRY_DSN` is unset (local CLI). On the Job, the SDK reports swallowed per-game failures, soft GCS sync failures, and sends **Cron** check-ins for monitor slug `llm-connections-nightly` (schedule `0 6 * * *` / `America/New_York` — keep in sync with Cloud Scheduler, or override with `SENTRY_MONITOR_SCHEDULE` / `SENTRY_MONITOR_TIMEZONE`).
+
+Python hot-path logs (nightly/backfill/game/sync/update) go to stdout as structured fields (`stage`, `model`, `date`, `status`, suite counts). With `DATA_BUCKET` set the Job emits **JSON** lines (Cloud Logging–friendly); locally the default is compact text. Override with `LOG_FORMAT=json` or `LOG_FORMAT=text`. Shell stage banners in `nightly_cloud.sh` stay human-readable.
 
 ---
 
@@ -214,8 +220,8 @@ Entrypoint in the image: [`scripts/nightly_cloud.sh`](scripts/nightly_cloud.sh)
 
 - Image: `…/llm-connections-nightly:main` (after first successful build-image)
 - Service account: `llm-connections-nightly`
-- Env: `DATA_BUCKET`, `SITE_BUCKET` (optional `NIGHTLY_TZ`, e.g. `America/New_York`)
-- Secret env: `OPENROUTER_API_KEY` ← secret `openrouter-api-key`
+- Env: `DATA_BUCKET`, `SITE_BUCKET` (optional `NIGHTLY_TZ`, e.g. `America/New_York`; optional `SENTRY_ENVIRONMENT=production`, `SENTRY_RELEASE=<image tag>`)
+- Secret env: `OPENROUTER_API_KEY` ← `openrouter-api-key`; `SENTRY_DSN` ← `sentry-dsn`
 - Timeout: long enough for the full model suite (up to 24h)
 - Memory/CPU: start around 2 GiB / 2 vCPU
 
@@ -241,8 +247,14 @@ gsutil iam ch \
 # Stores the OpenRouter key as a managed secret (not in the image or env file in git).
 echo -n "YOUR_KEY" | gcloud secrets create openrouter-api-key --data-file=-
 
-# Lets the Job SA read that secret at runtime.
+# Stores the Sentry DSN (Client Keys in the Sentry project UI).
+echo -n "YOUR_SENTRY_DSN" | gcloud secrets create sentry-dsn --data-file=-
+
+# Lets the Job SA read those secrets at runtime.
 gcloud secrets add-iam-policy-binding openrouter-api-key \
+  --member="serviceAccount:llm-connections-nightly@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+gcloud secrets add-iam-policy-binding sentry-dsn \
   --member="serviceAccount:llm-connections-nightly@${PROJECT_ID}.iam.gserviceaccount.com" \
   --role="roles/secretmanager.secretAccessor"
 
@@ -251,12 +263,27 @@ gcloud run jobs create llm-connections-nightly \
   --image="$IMAGE" \
   --region="$REGION" \
   --service-account="llm-connections-nightly@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --set-env-vars="DATA_BUCKET=connections-bench-data-prod,SITE_BUCKET=connections-bench-assets-prod,NIGHTLY_TZ=America/New_York" \
-  --set-secrets="OPENROUTER_API_KEY=openrouter-api-key:latest" \
+  --set-env-vars="DATA_BUCKET=connections-bench-data-prod,SITE_BUCKET=connections-bench-assets-prod,NIGHTLY_TZ=America/New_York,SENTRY_ENVIRONMENT=production" \
+  --set-secrets="OPENROUTER_API_KEY=openrouter-api-key:latest,SENTRY_DSN=sentry-dsn:latest" \
   --task-timeout=24h \
   --max-retries=0 \
   --memory=2Gi \
   --cpu=2
+```
+
+To add Sentry to an **existing** Job:
+
+```bash
+# One-time secret (skip if already created):
+echo -n "YOUR_SENTRY_DSN" | gcloud secrets create sentry-dsn --data-file=-
+gcloud secrets add-iam-policy-binding sentry-dsn \
+  --member="serviceAccount:llm-connections-nightly@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+
+gcloud run jobs update llm-connections-nightly \
+  --region="$REGION" \
+  --update-secrets="SENTRY_DSN=sentry-dsn:latest" \
+  --update-env-vars="SENTRY_ENVIRONMENT=production"
 ```
 
 ---

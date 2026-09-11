@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from llm_connections.engine import _serialize_game, run_game
+from llm_connections.engine import GameMetadata, _serialize_game, run_game
 from llm_connections.game import Game
 from llm_connections.llm import ChatUsage
 
@@ -113,6 +113,32 @@ class TestRunGame:
         assert kwargs["input_tokens"] == 40
         assert kwargs["output_tokens"] == 20
         assert kwargs["total_cost"] == pytest.approx(0.004)
+
+    def test_returns_game_metadata(self, log_path):
+        game = Game(SAMPLE_GAME)
+        replies = [
+            _reply(["HAIL", "RAIN", "SLEET", "SNOW"]),
+            _reply(["BUCKS", "HEAT", "JAZZ", "NETS"]),
+            _reply(["OPTION", "RETURN", "SHIFT", "TAB"]),
+            _reply(["KAYAK", "LEVEL", "MOM", "RACECAR"]),
+        ]
+        chat = MagicMock()
+        chat.send.side_effect = replies
+
+        with (
+            patch("llm_connections.engine.start_run"),
+            patch("llm_connections.engine.Game.load", return_value=game),
+            patch("llm_connections.engine.AIChat", return_value=chat),
+            patch("llm_connections.engine.log_guess"),
+            patch("llm_connections.engine.complete_run"),
+        ):
+            result = run_game(DAY, model=MODEL)
+
+        assert isinstance(result, GameMetadata)
+        assert result.outcome == "solved"
+        assert result.solved_groups == 4
+        assert result.mistakes == 0
+        assert result.input_tokens == 40
 
     def test_counts_invalid_guess_and_retries(self, log_path):
         game = Game(SAMPLE_GAME)

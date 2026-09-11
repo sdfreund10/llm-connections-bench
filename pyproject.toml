@@ -11,6 +11,7 @@ dependencies = [
     "dotenv>=0.9.9",
     "openrouter>=1.1.126",
     "requests>=2.34.2",
+    "sentry-sdk>=2.69.1",
 ]
 
 [project.scripts]

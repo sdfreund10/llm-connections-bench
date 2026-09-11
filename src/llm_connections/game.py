@@ -5,6 +5,8 @@ import requests
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from llm_connections.applog import event
+
 CONNECTIONS_URL = "https://github.com/Eyefyre/NYT-Connections-Answers/raw/main/connections.json"
 DATA_DIR = os.getenv("DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "data"))
 CONNECTIONS_FILE = os.path.join(DATA_DIR, "connections.json")
@@ -28,16 +30,16 @@ def _file_is_up_to_date():
 
 
 def download_connections():
-    print("Updating connections file...")
+    event("Updating connections file", stage="update", status="running")
     if _file_is_up_to_date():
-        print("Connections file is up to date.")
+        event("Connections file is up to date", stage="update", status="skipped")
         return
 
     response = requests.get(CONNECTIONS_URL)
     response.raise_for_status()
     with open(CONNECTIONS_FILE, "w") as f:
         json.dump(response.json(), f, indent=2)
-    print("Connections file updated.")
+    event("Connections file updated", stage="update", status="done")
 
 def most_recent_date():
     if not _file_exists():

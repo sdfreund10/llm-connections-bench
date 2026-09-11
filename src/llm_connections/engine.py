@@ -1,8 +1,10 @@
 import datetime
 import json
-from llm_connections.llm import AIChat
+from llm_connections.llm import AIChat, ChatUsage
 from llm_connections.game import Game, InvalidGuessError
 from llm_connections.log import start_run, log_guess, complete_run
+from llm_connections.telemetry import record_game
+from llm_connections.applog import event
 
 SYSTEM_PROMPT = '''
 You are trying to solve a game of Connections.
@@ -39,9 +41,36 @@ SUPPORTED_MODELS = [
     "google/gemini-3.7-flash",
 ]
 
+# Maybe this should all be stored on the actual Game class? Whatever its fine for now.
+class GameMetadata:
+    def __init__(self):
+        self.llm_wait_s = 0.0
+        self.input_tokens = 0
+        self.output_tokens = 0
+        self.total_cost = 0.0
+        self.invalid_guesses = 0
+        self.guess_error = None
+        self.solved_groups = 0
+        self.outcome = None
+        self.mistakes = 0
+
+    def add_usage(self, usage: ChatUsage):
+        self.llm_wait_s += usage.latency
+        self.input_tokens += usage.input_tokens
+        self.output_tokens += usage.output_tokens
+        self.total_cost += usage.total_cost
+
+    def add_invalid_guess(self, err: InvalidGuessError):
+        self.guess_error = err
+        self.invalid_guesses += 1
+
+    def reset_guess_error(self):
+        self.guess_error = None
+
 # TODO: Some models, like claude-sonnet-5, blow up with thinking tokens. We may need to default to low effort or something.
 # Defaulting to low effort or turning off thinking tokens may save money and help with latency.
-def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False):
+@record_game
+def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False) -> GameMetadata:
     start_run(date, model, force=force)
     game = Game.load(date)
     # Override with custom chat class if needed
@@ -58,50 +87,51 @@ def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False):
         }
     )
 
-    llm_wait_s = 0.0
-    input_tokens = 0
-    output_tokens = 0
-    total_cost = 0.0
-    invalid_guesses = 0
-    guess_error = None
+    metadata = GameMetadata()
     while not game.is_solved() and not game.is_lost():
         body = f"{_serialize_game(game)}"
-        if guess_error is not None:
-            body = f"Invalid guess - Please try again. {guess_error}\n\n{body}"
+        if metadata.guess_error is not None:
+            body = f"Invalid guess - Please try again. {metadata.guess_error}\n\n{body}"
 
         content, usage = chat.send(body)
-        llm_wait_s += usage.latency
-        input_tokens += usage.input_tokens
-        output_tokens += usage.output_tokens
-        total_cost += usage.total_cost
+        metadata.add_usage(usage)
 
         guess = json.loads(content)
         guess = guess | usage.to_dict()
         try:
             result = game.check_guess(guess['guess'])
-            guess_error = None
+            metadata.reset_guess_error()
             guess['success'] = result is not None
             guess['invalid'] = False
         except InvalidGuessError as err:
-            guess_error = err
-            invalid_guesses += 1
+            metadata.add_invalid_guess(err)
             guess['success'] = False
             guess['invalid'] = True
             guess['invalid_reason'] = str(err)
         log_guess(date, model, guess)
 
-    outcome = "solved" if game.is_solved() else "lost"
-    solved_groups = len(game.solved_groups())
+    metadata.outcome = "solved" if game.is_solved() else "lost"
+    metadata.solved_groups = len(game.solved_groups())
+    metadata.mistakes = game.mistakes
     complete_run(
         date,
         model,
-        outcome=outcome,
+        outcome=metadata.outcome,
         mistakes=game.mistakes,
-        invalid_guesses=invalid_guesses,
-        solved_groups=solved_groups,
-        llm_wait_s=llm_wait_s,
-        input_tokens=input_tokens,
-        output_tokens=output_tokens,
-        total_cost=total_cost,
+        invalid_guesses=metadata.invalid_guesses,
+        solved_groups=metadata.solved_groups,
+        llm_wait_s=metadata.llm_wait_s,
+        input_tokens=metadata.input_tokens,
+        output_tokens=metadata.output_tokens,
+        total_cost=metadata.total_cost,
     )
-    print(f"[{date}] Game {outcome}! ({game.mistakes} mistakes)")
+    event(
+        f"Game {metadata.outcome}",
+        stage="game",
+        model=model,
+        game_date=date,
+        status="done",
+        outcome=metadata.outcome,
+        mistakes=metadata.mistakes,
+    )
+    return metadata

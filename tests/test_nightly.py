@@ -1,8 +1,9 @@
 from datetime import date, datetime, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
+from llm_connections import applog
 from llm_connections.log import GameAlreadyCompletedError
-from llm_connections.nightly import _get_date_range, _run_game_for_date, run_nightly
+from llm_connections.nightly import _get_date_range, _run_game_for_date, _sync_results, run_nightly
 
 
 def test_get_date_range(monkeypatch):
@@ -20,7 +21,10 @@ def test_get_date_range(monkeypatch):
 
 
 class TestRunGameForDate:
-    def test_skips_when_completed_entry_exists(self, capsys):
+    def test_skips_when_completed_entry_exists(self, monkeypatch, capsys):
+        monkeypatch.setenv("LOG_FORMAT", "text")
+        monkeypatch.delenv("DATA_BUCKET", raising=False)
+        applog.configure_logging(force=True)
         with (
             patch("llm_connections.nightly.has_completed_entry", return_value=True),
             patch("llm_connections.nightly.run_game") as run,
@@ -51,21 +55,31 @@ class TestRunGameForDate:
         ):
             assert _run_game_for_date(date(2026, 9, 1), "model-a") == "skipped"
 
-    def test_returns_failed_on_other_errors(self, capsys):
+    def test_returns_failed_on_other_errors(self, monkeypatch, capsys):
+        monkeypatch.setenv("LOG_FORMAT", "text")
+        monkeypatch.delenv("DATA_BUCKET", raising=False)
+        applog.configure_logging(force=True)
         with (
             patch("llm_connections.nightly.has_completed_entry", return_value=False),
             patch(
                 "llm_connections.nightly.run_game",
                 side_effect=RuntimeError("network"),
             ),
+            patch("llm_connections.nightly.capture_run_failure") as capture,
         ):
             assert _run_game_for_date(date(2026, 9, 1), "model-a") == "failed"
 
         assert "ERROR" in capsys.readouterr().out
+        capture.assert_called_once()
+        assert capture.call_args.kwargs["game_date"] == date(2026, 9, 1)
+        assert capture.call_args.kwargs["model"] == "model-a"
 
 
 class TestRunNightly:
-    def test_downloads_then_counts_failures(self, capsys):
+    def test_downloads_then_counts_failures(self, monkeypatch, capsys):
+        monkeypatch.setenv("LOG_FORMAT", "text")
+        monkeypatch.delenv("DATA_BUCKET", raising=False)
+        applog.configure_logging(force=True)
         with (
             patch("llm_connections.nightly.download_connections") as download,
             patch(
@@ -77,14 +91,17 @@ class TestRunNightly:
                 side_effect=["done", "failed", "skipped", "failed"],
             ) as run_one,
             patch("llm_connections.nightly._sync_results") as sync,
-
         ):
             failed = run_nightly(models=["m1", "m2"])
 
         download.assert_called_once()
         assert run_one.call_count == 4
         assert failed == 2
-        assert "ran=1 skipped=1 failed=2" in capsys.readouterr().out
+        out = capsys.readouterr().out
+        assert "nightly done" in out
+        assert "ran=1" in out
+        assert "skipped=1" in out
+        assert "failed=2" in out
         sync.assert_called_once()
 
     def test_uses_default_models_when_none_passed(self):
@@ -105,3 +122,21 @@ class TestRunNightly:
 
         run_one.assert_called_once_with(date(2026, 9, 1), "default-a")
         sync.assert_called_once()
+
+
+def test_sync_results_reports_soft_failure(monkeypatch, capsys):
+    monkeypatch.setenv("LOG_FORMAT", "text")
+    monkeypatch.delenv("DATA_BUCKET", raising=False)
+    applog.configure_logging(force=True)
+    completed = MagicMock(returncode=2)
+    with (
+        patch("subprocess.run", return_value=completed) as run,
+        patch("llm_connections.nightly.capture_sync_failure") as capture,
+    ):
+        _sync_results()
+
+    run.assert_called_once()
+    capture.assert_called_once_with(2)
+    out = capsys.readouterr().out
+    assert "status=failed" in out
+    assert "returncode=2" in out
