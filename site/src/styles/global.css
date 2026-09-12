@@ -327,6 +327,76 @@ main {
   margin-inline: auto;
 }
 
+.site-footer__links {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.site-footer__links a {
+  font-weight: 600;
+}
+
+/* About */
+.about {
+  max-width: 42rem;
+}
+
+.about__title {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.about__lede {
+  margin: 0 0 2rem;
+  font-size: 1.1rem;
+  color: var(--ink-muted);
+  max-width: 48ch;
+}
+
+.about__section {
+  margin-bottom: 2rem;
+}
+
+.about__section h2 {
+  margin: 0 0 0.65rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.about__section p,
+.about__section li {
+  color: var(--ink-muted);
+}
+
+.about__section p {
+  margin: 0 0 0.85rem;
+}
+
+.about__section p:last-child,
+.about__section ul:last-child,
+.about__section ol:last-child {
+  margin-bottom: 0;
+}
+
+.about__section ul,
+.about__steps {
+  margin: 0 0 0.85rem;
+  padding-left: 1.25rem;
+}
+
+.about__section li + li,
+.about__steps li + li {
+  margin-top: 0.4rem;
+}
+
 /* Home */
 .home-intro {
   margin: 0 0 1.75rem;

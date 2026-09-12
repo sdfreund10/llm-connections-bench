@@ -2,6 +2,7 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import HomeContent from "../../components/HomeContent.astro";
 import { getPaginatedDates, getHomePageCount, getModelStats } from "../../lib/data";
+import { siteName } from "../../lib/site";
 
 export function getStaticPaths() {
   const totalPages = getHomePageCount();
@@ -22,6 +23,6 @@ const dates = getPaginatedDates(currentPage);
 const stats = getModelStats();
 ---
 
-<BaseLayout title={`Page ${currentPage} — llm-connections`} showNav>
+<BaseLayout title={`Page ${currentPage} — ${siteName}`} showNav>
   <HomeContent {dates} {stats} {currentPage} {totalPages} />
 </BaseLayout>

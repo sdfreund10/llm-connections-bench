@@ -1,0 +1,156 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import {
+  authorName,
+  connectionsGameUrl,
+  githubUrl,
+  openRouterUrl,
+  personalSiteUrl,
+  puzzleSourceUrl,
+  siteName,
+} from "../lib/site";
+
+const description =
+  "Why benchmark LLMs on Connections, how models play, how to read the results, and known limitations.";
+
+const personJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: authorName,
+  url: personalSiteUrl || githubUrl,
+};
+---
+
+<BaseLayout
+  title={`About — ${siteName}`}
+  description={description}
+  showNav
+  jsonLd={personJsonLd}
+>
+  <article class="about">
+    <h1 class="about__title">About</h1>
+    <p class="about__lede">
+      Compares language models' ability to solve real{" "}
+      <a href={connectionsGameUrl} rel="noopener noreferrer">NYT Connections</a> puzzles with the official rules.
+      Every guess is logged for comparison, along with the LLM's reasoning.
+    </p>
+
+    <section class="about__section">
+      <h2>Why this exists</h2>
+      <p>
+        I play Connections almost daily along with other NYT Games. The game is simple with easy to
+        describe rules but often tests your creativity and ability to think outside the box.
+        I know LLMs know more information than me, as they are training on the totality of human writing.
+        Connections is about more than just knowing things though, and I wanted to know whether or not an
+        LLM could reliably solve the puzzles.
+      </p>
+    </section>
+
+    <section class="about__section">
+      <h2>Why this is a useful benchmark</h2>
+      <p>
+        Connections demands <strong>lateral thinking and cultural context</strong>. Puzzles may utilize wordplay,
+        idioms, niche knowledge, and soft associations to trick the player. That stresses the breadth and depth of
+        a model’s training in a way common evaluation suites may not.
+      </p>
+      <p>
+        Models play the game like a human would - four mistake limit, multi-turn play (not one-shot classification),
+        one puzzle per chat context, and full guess-plus-reasoning logs. Runs go through{" "}
+        <a href={openRouterUrl} rel="noopener noreferrer">OpenRouter</a> with a shared prompt so each day's
+        results are comparable.
+      </p>
+    </section>
+
+    <section class="about__section">
+      <h2>How it works</h2>
+      <ol class="about__steps">
+        <li>The model is told how to play and given the current game board.</li>
+        <li>
+          It guesses a four-word category. The engine replies whether the guess is correct,
+          incorrect, or invalid (for example, wrong word count or already-solved words).
+        </li>
+        <li>
+          Play continues until the puzzle is solved or the model runs out of mistakes.
+        </li>
+      </ol>
+      <p>
+        Each turn also records the model’s reasoning, which you can open on any date page’s
+        guess-by-guess replay.
+      </p>
+    </section>
+
+    <section class="about__section">
+      <h2>How to read the results</h2>
+      <ul>
+        <li>
+          <strong>Season standings</strong> rank models by win rate (solved ÷ completed games),
+          then average mistakes. You’ll also see W–L, cost, tokens, and games played.
+        </li>
+        <li>
+          <strong>Mistakes</strong> are wrong category guesses (four lose the game).{" "}
+          <strong>Invalid guesses</strong> break the rules and don’t count as mistakes.
+        </li>
+        <li>
+          <strong>Date pages</strong> show the board, outcomes per model, and expandable guess
+          history with reasoning.
+        </li>
+        <li>
+          The <strong>model filter</strong> defaults to just a few major models, but I've run the
+          benchmarks through many available models. Open the filter to include more models in the
+          result set.
+        </li>
+        <li>
+          Note: some models are too expensive or too slow to run through a backlog of puzzles. Feel
+          free to steal the code and run it yourself if you’re curious.
+        </li>
+      </ul>
+    </section>
+
+    <section class="about__section">
+      <h2>Limitations</h2>
+      <ul>
+        <li>
+          Unofficial project — not affiliated with The New York Times or Connections.
+        </li>
+        <li>
+          Puzzle archive comes from a third-party source (
+          <a href={puzzleSourceUrl} rel="noopener noreferrer"
+            >Eyefyre/NYT-Connections-Answers</a
+          >), not NYT directly.
+        </li>
+        <li>
+          Older puzzles may appear in training data for newer LLMs.
+        </li>
+        <li>
+          There are a few gaps in the game model. It does not communicate the difficult of a given category when
+          a match is found. It also does not share "1 away" information when the LLM's guess is nearly correct.
+        </li>
+        <li>
+          The harness mostly uses OpenRouter model defaults with regards to thinking effort.
+          Tokens/game can be an indicator of these different effort levels.
+        </li>
+      </ul>
+    </section>
+
+    <section class="about__section">
+      <h2>Author &amp; links</h2>
+      <p>
+        Built by {authorName}. Source code is on{" "}
+        <a href={githubUrl} rel="noopener noreferrer">GitHub</a>. Models are called through{" "}
+        <a href={openRouterUrl} rel="noopener noreferrer">OpenRouter</a>; puzzles from{" "}
+        <a href={puzzleSourceUrl} rel="noopener noreferrer"
+          >Eyefyre/NYT-Connections-Answers</a
+        >.
+        {
+          personalSiteUrl && (
+            <>
+              {" "}
+              More at{" "}
+              <a href={personalSiteUrl} rel="noopener noreferrer">my personal site</a>.
+            </>
+          )
+        }
+      </p>
+    </section>
+  </article>
+</BaseLayout>

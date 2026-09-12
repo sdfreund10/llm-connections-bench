@@ -2,18 +2,54 @@
 import "../styles/global.css";
 import ModelFilter from "../components/ModelFilter.astro";
 import { DEFAULT_MODELS, MODEL_QUERY_PARAM } from "../lib/models";
+import {
+  absoluteUrl,
+  authorName,
+  defaultDescription,
+  defaultTitle,
+  githubUrl,
+  openRouterUrl,
+  personalSiteUrl,
+  puzzleSourceUrl,
+  siteName,
+  siteUrl,
+} from "../lib/site";
 
 interface Props {
   title?: string;
   description?: string;
   showNav?: boolean;
+  ogType?: "website" | "article";
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
 const {
-  title = "llm-connections",
-  description = "How well do language models play Connections? Daily results and season standings.",
+  title = defaultTitle,
+  description = defaultDescription,
   showNav = false,
+  ogType = "website",
+  jsonLd,
 } = Astro.props;
+
+const canonical = absoluteUrl(Astro.url.pathname);
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: siteName,
+  url: siteUrl,
+  description: defaultDescription,
+  author: {
+    "@type": "Person",
+    name: authorName,
+  },
+};
+
+const jsonLdBlocks = jsonLd
+  ? Array.isArray(jsonLd)
+    ? [websiteJsonLd, ...jsonLd]
+    : [websiteJsonLd, jsonLd]
+  : [websiteJsonLd];
 ---
 
 <!doctype html>
@@ -22,7 +58,19 @@ const {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content={siteName} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <link rel="icon" href="/favicon.ico?v=4" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg?v=4" type="image/svg+xml" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=4" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=4" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -30,6 +78,11 @@ const {
       rel="stylesheet"
     />
     <title>{title}</title>
+    {
+      jsonLdBlocks.map((block) => (
+        <script type="application/ld+json" set:html={JSON.stringify(block)} />
+      ))
+    }
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -38,7 +91,7 @@ const {
         <div class="site-header__brand">
           <a class="site-logo" href="/">
             <span class="site-logo__mark" aria-hidden="true">4</span>
-            <span class="site-logo__text">llm-connections</span>
+            <span class="site-logo__text">{siteName}</span>
           </a>
           <p class="site-tagline">Language models vs. the daily word puzzle</p>
         </div>
@@ -47,6 +100,7 @@ const {
             <nav class="site-nav" aria-label="Primary">
               <a class="site-nav__link" href="/">Results</a>
               <a class="site-nav__link" href="/#standings">Standings</a>
+              <a class="site-nav__link" href="/about/">About</a>
             </nav>
           )
         }
@@ -58,11 +112,23 @@ const {
     </main>
     <footer class="site-footer">
       <p>
-        Unofficial benchmark — not affiliated with The New York Times or Connections.
-        Puzzle data from
-        <a href="https://github.com/Eyefyre/NYT-Connections-Answers" rel="noopener noreferrer"
-          >Eyefyre/NYT-Connections-Answers</a
-        >.
+        Unofficial benchmark by {authorName} — not affiliated with The New York Times or
+        Connections. Models via{" "}
+        <a href={openRouterUrl} rel="noopener noreferrer">OpenRouter</a>. Puzzle data from{" "}
+        <a href={puzzleSourceUrl} rel="noopener noreferrer">Eyefyre/NYT-Connections-Answers</a>.
+      </p>
+      <p class="site-footer__links">
+        <a href="/about/">About</a>
+        <span aria-hidden="true">·</span>
+        <a href={githubUrl} rel="noopener noreferrer">Source</a>
+        {
+          personalSiteUrl && (
+            <>
+              <span aria-hidden="true">·</span>
+              <a href={personalSiteUrl} rel="noopener noreferrer">Personal site</a>
+            </>
+          )
+        }
       </p>
     </footer>
     <script is:inline define:vars={{ defaults: [...DEFAULT_MODELS], param: MODEL_QUERY_PARAM }}>
