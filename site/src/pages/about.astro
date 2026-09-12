@@ -30,7 +30,7 @@ const personJsonLd = {
   <article class="about">
     <h1 class="about__title">About</h1>
     <p class="about__lede">
-      A longitudinal benchmark: language models play real{" "}
+      Compares language models' ability to solve real{" "}
       <a href={connectionsGameUrl} rel="noopener noreferrer">NYT Connections</a> puzzles with the official rules.
       Every guess is logged for comparison, along with the LLM's reasoning.
     </p>
@@ -49,16 +49,15 @@ const personJsonLd = {
     <section class="about__section">
       <h2>Why this is a useful benchmark</h2>
       <p>
-        Connections demands <strong>lateral thinking and cultural context</strong> - wordplay,
-        idioms, pop and niche knowledge, soft associations. That stresses the breadth and depth of
-        a model’s training in a way narrow factual evaluation suite may not.
+        Connections demands <strong>lateral thinking and cultural context</strong>. Puzzles may utilize wordplay,
+        idioms, niche knowledge, and soft associations to trick the player. That stresses the breadth and depth of
+        a model’s training in a way common evaluation suites may not.
       </p>
       <p>
-        Models also play for real: the same four-by-four board and four-mistake limit, multi-turn
-        play (not a one-shot classification), one puzzle at a time, and full
-        guess-plus-reasoning logs. Runs go through{" "}
-        <a href={openRouterUrl} rel="noopener noreferrer">OpenRouter</a> with a shared prompt and
-        structured output so results stay comparable across models and dates.
+        Models play the game like a human would - four mistake limit, multi-turn play (not one-shot classification),
+        one puzzle per chat context, and full guess-plus-reasoning logs. Runs go through{" "}
+        <a href={openRouterUrl} rel="noopener noreferrer">OpenRouter</a> with a shared prompt so each day's
+        results are comparable.
       </p>
     </section>
 
@@ -96,8 +95,13 @@ const personJsonLd = {
           history with reasoning.
         </li>
         <li>
-          The <strong>model filter</strong> defaults to a small curated set; open it to include
-          every model that has runs in the archive.
+          The <strong>model filter</strong> defaults to just a few major models, but I've run the
+          benchmarks through many available models. Open the filter to include more models in the
+          result set.
+        </li>
+        <li>
+          Note: some models are too expensive or too slow to run through a backlog of puzzles. Feel
+          free to steal the code and run it yourself if you’re curious.
         </li>
       </ul>
     </section>
@@ -115,15 +119,15 @@ const personJsonLd = {
           >), not NYT directly.
         </li>
         <li>
-          Older puzzles may appear in training data; treat win rates as signals, not pure
-          generalization proof.
+          Older puzzles may appear in training data for newer LLMs.
         </li>
         <li>
-          The harness does not fully model the human game: it does not reveal category difficulty
-          colors when a group is found, and it does not give “one away” hints.
+          There are a few gaps in the game model. It does not communicate the difficult of a given category when
+          a match is found. It also does not share "1 away" information when the LLM's guess is nearly correct.
         </li>
         <li>
-          Thinking budgets and provider quirks can differ by model even under a shared prompt.
+          The harness mostly uses OpenRouter model defaults with regards to thinking effort.
+          Tokens/game can be an indicator of these different effort levels.
         </li>
       </ul>
     </section>
