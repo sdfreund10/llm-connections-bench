@@ -37,7 +37,7 @@ A **longitudinal Connections benchmark** — track win rates, mistake patterns, 
 - **Inspection:** `uv run llm-connections list <start> <end> <model>` summarizes results in the terminal.
 - **Rules:** Standard Connections — four groups of four, game ends on four wrong guesses or all groups solved.
 - **Secrets:** `OPENROUTER_API_KEY` in `.env` (local only; never published).
-- **Planned surface:** Static website — daily result per model plus aggregate success metrics over time.
+- **Public surface:** Static website — daily results, season standings, About/methodology, and baseline SEO (canonical, Open Graph, sitemap).
 
 ## Capabilities and Constraints
 
@@ -48,13 +48,13 @@ A **longitudinal Connections benchmark** — track win rates, mistake patterns, 
 - Skip or force-overwrite completed runs (`--force`).
 - Persist every guess with reasoning for later analysis and display.
 - List and summarize results by model and date range.
+- Static site with date archive, standings, guess replay, About page, and source/author links.
 
 **Explicitly undecided**
 
-- Static site information architecture (exact pages, charts, navigation).
 - Which models to feature on the public site vs. run ad hoc.
-- Hosting and deploy target for the static site.
-- Whether to surface full guess-by-guess replay on the public site (longitudinal metrics are the confirmed priority; replay is not ruled out but not confirmed).
+- Charts / longitudinal visualizations beyond standings.
+- Custom social card images.
 
 **Terminology**
 
