@@ -2,6 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import HomeContent from "../components/HomeContent.astro";
 import { getPaginatedDates, getHomePageCount, getModelStats } from "../lib/data";
+import { defaultDescription, defaultTitle } from "../lib/site";
 
 const currentPage = 1;
 const totalPages = getHomePageCount();
@@ -9,10 +10,6 @@ const dates = getPaginatedDates(currentPage);
 const stats = getModelStats();
 ---
 
-<BaseLayout
-  title="llm-connections — LLMs vs Connections"
-  description="How well do language models play Connections? Daily results and season standings."
-  showNav
->
+<BaseLayout title={defaultTitle} description={defaultDescription} showNav>
   <HomeContent {dates} {stats} {currentPage} {totalPages} />
 </BaseLayout>

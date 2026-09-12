@@ -1,6 +1,9 @@
 /** Public site identity and outbound links. */
 export const siteUrl = "https://connections-bench.sfreund.tools";
 
+/** Public-facing product name (SEO, logo, Open Graph). */
+export const siteName = "connections-bench";
+
 export const githubUrl = "https://github.com/sdfreund10/llm-connections-bench";
 
 export const puzzleSourceUrl =
@@ -15,7 +18,7 @@ export const personalSiteUrl = "";
 
 export const authorName = "Steve Freund";
 
-export const defaultTitle = "llm-connections — LLMs vs Connections";
+export const defaultTitle = `${siteName} — LLMs vs Connections`;
 
 export const defaultDescription =
   "How well do language models play Connections? Daily results and season standings.";

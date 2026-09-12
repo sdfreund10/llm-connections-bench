@@ -11,6 +11,7 @@ import {
   openRouterUrl,
   personalSiteUrl,
   puzzleSourceUrl,
+  siteName,
   siteUrl,
 } from "../lib/site";
 
@@ -35,7 +36,7 @@ const canonical = absoluteUrl(Astro.url.pathname);
 const websiteJsonLd = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: "llm-connections",
+  name: siteName,
   url: siteUrl,
   description: defaultDescription,
   author: {
@@ -62,7 +63,7 @@ const jsonLdBlocks = jsonLd
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:type" content={ogType} />
-    <meta property="og:site_name" content="llm-connections" />
+    <meta property="og:site_name" content={siteName} />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
@@ -90,7 +91,7 @@ const jsonLdBlocks = jsonLd
         <div class="site-header__brand">
           <a class="site-logo" href="/">
             <span class="site-logo__mark" aria-hidden="true">4</span>
-            <span class="site-logo__text">llm-connections</span>
+            <span class="site-logo__text">{siteName}</span>
           </a>
           <p class="site-tagline">Language models vs. the daily word puzzle</p>
         </div>

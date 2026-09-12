@@ -3,6 +3,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import ModelRuns from "../../components/ModelRuns.astro";
 import PuzzleCategories from "../../components/PuzzleCategories.astro";
 import { getDateSummary, formatDate, getDatesWithRuns } from "../../lib/data";
+import { siteName } from "../../lib/site";
 
 export function getStaticPaths() {
   return getDatesWithRuns().map((date) => ({ params: { date } }));
@@ -17,7 +18,7 @@ if (!summary) {
 ---
 
 <BaseLayout
-  title={`Connections ${formatDate(date!)} — model results | llm-connections`}
+  title={`Connections ${formatDate(date!)} — model results | ${siteName}`}
   description={`Model results for the Connections puzzle on ${date}.`}
   showNav
 >
