@@ -9,7 +9,9 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "lint": "standard",
+    "lint:fix": "standard --fix"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",
@@ -17,5 +19,8 @@
   },
   "allowScripts": {
     "esbuild": true
+  },
+  "devDependencies": {
+    "standard": "^17.1.2"
   }
 }
