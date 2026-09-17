@@ -216,9 +216,8 @@ class TestMonitorNightlyJob:
         with patch(
             "llm_connections.telemetry.capture_checkin",
             return_value="check-1",
-        ) as checkin:
-            with pytest.raises(RuntimeError, match="boom"):
-                stub()
+        ) as checkin, pytest.raises(RuntimeError, match="boom"):
+            stub()
 
         assert checkin.call_args_list[1].kwargs["status"] == telemetry.MonitorStatus.ERROR
 

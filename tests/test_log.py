@@ -1,19 +1,18 @@
 import json
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 
 from llm_connections.log import (
     GameAlreadyCompletedError,
+    _date_key,
+    _load_log,
     complete_run,
     has_completed_entry,
     list_results,
     log_guess,
     start_run,
-    _date_key,
-    _load_log,
 )
-
 
 MODEL = "openai/gpt-4.1"
 DAY = date(2026, 9, 1)
@@ -31,7 +30,7 @@ class TestDateKey:
         assert _date_key(DAY) == "2026-09-01"
 
     def test_formats_datetime(self):
-        assert _date_key(datetime(2026, 9, 1, 15, 30)) == "2026-09-01"
+        assert _date_key(datetime(2026, 9, 1, 15, 30, tzinfo=UTC)) == "2026-09-01"
 
 
 class TestLoadLog:

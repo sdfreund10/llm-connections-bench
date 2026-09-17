@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from llm_connections.applog import event
@@ -11,13 +11,17 @@ from llm_connections.backfill import MODELS
 from llm_connections.engine import run_game
 from llm_connections.game import download_connections
 from llm_connections.log import GameAlreadyCompletedError, has_completed_entry
-from llm_connections.telemetry import capture_run_failure, capture_sync_failure, monitor_nightly_job
+from llm_connections.telemetry import (
+    capture_run_failure,
+    capture_sync_failure,
+    monitor_nightly_job,
+)
 
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "sync_data.sh"
 
 
 def _get_date_range() -> tuple[date, date]:
-    end_date = datetime.now(timezone.utc).date() - timedelta(days=1)
+    end_date = datetime.now(UTC).date() - timedelta(days=1)
     beginning_date = end_date - timedelta(days=7)
     return beginning_date, end_date
 
@@ -51,7 +55,7 @@ def _run_game_for_date(target: date, model: str) -> str:
             status="skipped",
         )
         return "skipped"
-    except Exception as exc:
+    except Exception as exc: #noqa: BLE001
         event(
             f"ERROR for {model}: {exc}",
             stage="game",
