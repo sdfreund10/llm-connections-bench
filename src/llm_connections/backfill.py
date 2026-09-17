@@ -112,7 +112,7 @@ def run_backfill(
                     status="skipped",
                 )
                 skipped += 1
-            except Exception as exc:
+            except Exception as exc: #noqa: BLE001
                 failed += 1
                 event(
                     f"ERROR for {model}: {exc}",

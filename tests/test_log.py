@@ -1,5 +1,5 @@
 import json
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 
@@ -30,7 +30,7 @@ class TestDateKey:
         assert _date_key(DAY) == "2026-09-01"
 
     def test_formats_datetime(self):
-        assert _date_key(datetime(2026, 9, 1, 15, 30)) == "2026-09-01"
+        assert _date_key(datetime(2026, 9, 1, 15, 30, tzinfo=UTC)) == "2026-09-01"
 
 
 class TestLoadLog:

@@ -55,7 +55,7 @@ def _run_game_for_date(target: date, model: str) -> str:
             status="skipped",
         )
         return "skipped"
-    except Exception as exc:
+    except Exception as exc: #noqa: BLE001
         event(
             f"ERROR for {model}: {exc}",
             stage="game",

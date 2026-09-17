@@ -1,7 +1,7 @@
 # Pull connections history from https://github.com/Eyefyre/NYT-Connections-Answers and save it locally
 import json
 import os
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import requests
@@ -26,7 +26,7 @@ def _file_is_up_to_date():
     if latest_puzzle_date is None:
         return False
 
-    return latest_puzzle_date >= datetime.now().date() - timedelta(days=1)
+    return latest_puzzle_date >= datetime.now(UTC).date() - timedelta(days=1)
 
 
 def download_connections():
@@ -48,7 +48,7 @@ def most_recent_date():
         entries = json.load(f)
         if len(entries) == 0:
             return None
-        return max(datetime.strptime(entry["date"], "%Y-%m-%d") for entry in entries).date()
+        return max(datetime.strptime(entry["date"], "%Y-%m-%d").replace(tzinfo=UTC) for entry in entries).date()
 
 class Group:
     def __init__(self, data: dict):
@@ -77,7 +77,7 @@ class Game:
     def __init__(self, data: dict):
         self.data = data
         self.id: int = data["id"]
-        self.date: datetime = datetime.strptime(data["date"], "%Y-%m-%d")
+        self.date: datetime = datetime.strptime(data["date"], "%Y-%m-%d").replace(tzinfo=UTC)
         self.groups: list[Group] = [Group(answer) for answer in data["answers"]]
         self.mistakes: int = 0
         self.guesses: list[set[str]] = []
@@ -168,8 +168,8 @@ class Game:
             entries = json.load(f)
             games = []
             for entry in entries:
-                game_date = datetime.strptime(entry["date"], "%Y-%m-%d")
-                if game_date < datetime(2026, 8, 1):
+                game_date = datetime.strptime(entry["date"], "%Y-%m-%d").replace(tzinfo=UTC)
+                if game_date < datetime(2026, 8, 1, tzinfo=UTC):
                     continue
                 games.append(Game(entry))
             return games

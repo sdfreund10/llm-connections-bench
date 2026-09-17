@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock, patch
 
 import pytest
@@ -87,7 +87,7 @@ class TestGame:
         game = Game(SAMPLE_GAME)
 
         assert game.id == 42
-        assert game.date == datetime(2026, 9, 15)
+        assert game.date.date() == datetime(2026, 9, 15, tzinfo=UTC).date()
         assert len(game.groups) == 4
         assert all(isinstance(group, Group) for group in game.groups)
         assert game.groups[2].name == "KEYBOARD KEYS"
@@ -173,7 +173,7 @@ class TestGame:
         games = Game.load_all()
 
         assert [game.id for game in games] == [2, 3]
-        assert games[0].date == datetime(2026, 8, 1)
+        assert games[0].date.date() == datetime(2026, 8, 1, tzinfo=UTC).date()
 
     def test_load_loads_game_for_date(self, connections_path):
         connections_path.write_text(
@@ -184,9 +184,9 @@ class TestGame:
                 ]
             )
         )
-        game = Game.load(datetime(2026, 9, 1))
+        game = Game.load(datetime(2026, 9, 1, tzinfo=UTC))
         assert game.id == 1
-        assert game.date == datetime(2026, 9, 1)
+        assert game.date.date() == datetime(2026, 9, 1, tzinfo=UTC).date()
 
     def test_load_raises_when_game_not_found(self, connections_path):
         connections_path.write_text(
@@ -198,7 +198,7 @@ class TestGame:
             )
         )
         with pytest.raises(ValueError, match="Game not found for date: 2026-09-03"):
-            Game.load(datetime(2026, 9, 3))
+            Game.load(datetime(2026, 9, 3, tzinfo=UTC))
 
 
 class TestValidateGuess:
@@ -370,7 +370,7 @@ class TestCheckGuess:
 
     def test_day_returns_date(self):
         game = Game(SAMPLE_GAME)
-        assert game.day() == datetime(2026, 9, 15).date()
+        assert game.day() == datetime(2026, 9, 15, tzinfo=UTC).date()
 
 
 class TestFileHelpers:
@@ -391,7 +391,7 @@ class TestFileHelpers:
         assert _file_is_up_to_date() is False
 
     def test_file_is_up_to_date_when_latest_puzzle_is_today(self, connections_path):
-        today = datetime.now().date().isoformat()
+        today = datetime.now(UTC).date().isoformat()
         connections_path.write_text(
             json.dumps([{"id": 1, "date": today, "answers": SAMPLE_ANSWERS}])
         )
@@ -399,7 +399,7 @@ class TestFileHelpers:
         assert _file_is_up_to_date() is True
 
     def test_file_is_up_to_date_when_latest_puzzle_is_yesterday(self, connections_path):
-        yesterday = (datetime.now().date() - timedelta(days=1)).isoformat()
+        yesterday = (datetime.now(UTC).date() - timedelta(days=1)).isoformat()
         connections_path.write_text(
             json.dumps([{"id": 1, "date": yesterday, "answers": SAMPLE_ANSWERS}])
         )
@@ -409,7 +409,7 @@ class TestFileHelpers:
     def test_file_is_stale_when_latest_puzzle_is_older_than_one_day(
         self, connections_path
     ):
-        old = (datetime.now().date() - timedelta(days=2)).isoformat()
+        old = (datetime.now(UTC).date() - timedelta(days=2)).isoformat()
         connections_path.write_text(
             json.dumps([{"id": 1, "date": old, "answers": SAMPLE_ANSWERS}])
         )
@@ -436,12 +436,12 @@ class TestMostRecentDate:
             )
         )
 
-        assert most_recent_date() == datetime(2026, 9, 10).date()
+        assert most_recent_date() == datetime(2026, 9, 10, tzinfo=UTC).date()
 
 
 class TestDownloadConnections:
     def test_skips_download_when_file_is_fresh(self, connections_path):
-        today = datetime.now().date().isoformat()
+        today = datetime.now(UTC).date().isoformat()
         connections_path.write_text(
             json.dumps([{"id": 1, "date": today, "answers": SAMPLE_ANSWERS}])
         )
@@ -466,11 +466,11 @@ class TestDownloadConnections:
         assert json.loads(connections_path.read_text()) == payload
 
     def test_downloads_when_latest_puzzle_is_stale(self, connections_path):
-        old = (datetime.now().date() - timedelta(days=2)).isoformat()
+        old = (datetime.now(UTC).date() - timedelta(days=2)).isoformat()
         connections_path.write_text(
             json.dumps([{"id": 1, "date": old, "answers": SAMPLE_ANSWERS}])
         )
-        payload = [{"id": 2, "date": datetime.now().date().isoformat(), "answers": []}]
+        payload = [{"id": 2, "date": datetime.now(UTC).date().isoformat(), "answers": []}]
         response = Mock()
         response.json.return_value = payload
 
@@ -484,8 +484,10 @@ class TestDownloadConnections:
         response = Mock()
         response.raise_for_status.side_effect = Exception("boom")
 
-        with patch("llm_connections.game.requests.get", return_value=response):
-            with pytest.raises(Exception, match="boom"):
-                download_connections()
+        with(
+            patch("llm_connections.game.requests.get", return_value=response),
+            pytest.raises(Exception, match="boom"),
+        ):
+            download_connections()
 
         assert not connections_path.exists()
