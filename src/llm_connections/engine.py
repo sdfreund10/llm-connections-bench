@@ -60,7 +60,7 @@ class GameMetadata:
         self.output_tokens += usage.output_tokens
         self.total_cost += usage.total_cost
 
-    def add_invalid_guess(self, err: InvalidGuessError):
+    def add_invalid_guess(self, err: Exception):
         self.guess_error = err
         self.invalid_guesses += 1
 
@@ -96,9 +96,11 @@ def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False) -
         content, usage = chat.send(body)
         metadata.add_usage(usage)
 
-        guess = json.loads(content)
-        guess = guess | usage.to_dict()
+        guess = None
         try:
+            guess = json.loads(content)
+            guess = guess | usage.to_dict()
+
             result = game.check_guess(guess['guess'])
             metadata.reset_guess_error()
             guess['success'] = result is not None
@@ -108,6 +110,22 @@ def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False) -
             guess['success'] = False
             guess['invalid'] = True
             guess['invalid_reason'] = str(err)
+        except (json.JSONDecodeError, TypeError) as err:
+            guess = usage.to_dict()
+            guess['success'] = False
+            guess['invalid'] = True
+            guess['invalid_reason'] = str(err)
+            metadata.add_invalid_guess(err)
+            event(
+                "Unable to parse LLM response",
+                model=model,
+                stage="guess",
+                game_date=date,
+                status="error",
+                error=type(err).__name__,
+                error_message=str(err),
+            )
+
         log_guess(date, model, guess)
 
     metadata.outcome = "solved" if game.is_solved() else "lost"
