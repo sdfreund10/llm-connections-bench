@@ -67,8 +67,12 @@ class GameMetadata:
     def reset_guess_error(self):
         self.guess_error = None
 
-# TODO: Some models, like claude-sonnet-5, blow up with thinking tokens. We may need to default to low effort or something.
-# Defaulting to low effort or turning off thinking tokens may save money and help with latency.
+
+class LLMResponseError(Exception):
+    def __init__(self, err: Exception):
+        self.err = err
+        super().__init__(f"Unable to parse LLM response: {err}")
+
 @record_game
 def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False) -> GameMetadata:
     start_run(date, model, force=force)
@@ -88,6 +92,7 @@ def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False) -
     )
 
     metadata = GameMetadata()
+    error_count = 0
     while not game.is_solved() and not game.is_lost():
         body = f"{_serialize_game(game)}"
         if metadata.guess_error is not None:
@@ -111,6 +116,9 @@ def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False) -
             guess['invalid'] = True
             guess['invalid_reason'] = str(err)
         except (json.JSONDecodeError, TypeError) as err:
+            error_count += 1
+            if error_count > 3:
+                raise LLMResponseError(err)
             guess = usage.to_dict()
             guess['success'] = False
             guess['invalid'] = True
