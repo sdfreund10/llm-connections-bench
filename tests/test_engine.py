@@ -175,6 +175,33 @@ class TestRunGame:
         assert kwargs["invalid_guesses"] == 1
         assert kwargs["mistakes"] == 0
 
+    def test_handles_none_llm_content(self, log_path):
+        game = Game(SAMPLE_GAME)
+        replies = [
+            (None, _usage()),
+            _reply(["HAIL", "RAIN", "SLEET", "SNOW"]),
+            _reply(["BUCKS", "HEAT", "JAZZ", "NETS"]),
+            _reply(["OPTION", "RETURN", "SHIFT", "TAB"]),
+            _reply(["KAYAK", "LEVEL", "MOM", "RACECAR"]),
+        ]
+        chat = MagicMock()
+        chat.send.side_effect = replies
+
+        with (
+            patch("llm_connections.engine.start_run"),
+            patch("llm_connections.engine.Game.load", return_value=game),
+            patch("llm_connections.engine.AIChat", return_value=chat),
+            patch("llm_connections.engine.event"),
+            patch("llm_connections.engine.log_guess") as log_guess,
+            patch("llm_connections.engine.complete_run") as complete_run,
+        ):
+            run_game(DAY, model=MODEL)
+
+        first_guess = log_guess.call_args_list[0].args[2]
+        assert first_guess["invalid"] is True
+        assert first_guess["success"] is False
+        assert complete_run.call_args.kwargs["invalid_guesses"] == 1
+
     def test_records_loss_after_four_mistakes(self, log_path):
         game = Game(SAMPLE_GAME)
         wrong = [

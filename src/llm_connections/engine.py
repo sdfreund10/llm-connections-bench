@@ -60,15 +60,19 @@ class GameMetadata:
         self.output_tokens += usage.output_tokens
         self.total_cost += usage.total_cost
 
-    def add_invalid_guess(self, err: InvalidGuessError):
+    def add_invalid_guess(self, err: Exception):
         self.guess_error = err
         self.invalid_guesses += 1
 
     def reset_guess_error(self):
         self.guess_error = None
 
-# TODO: Some models, like claude-sonnet-5, blow up with thinking tokens. We may need to default to low effort or something.
-# Defaulting to low effort or turning off thinking tokens may save money and help with latency.
+
+class LLMResponseError(Exception):
+    def __init__(self, err: Exception):
+        self.err = err
+        super().__init__(f"Unable to parse LLM response: {err}")
+
 @record_game
 def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False) -> GameMetadata:
     start_run(date, model, force=force)
@@ -88,6 +92,7 @@ def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False) -
     )
 
     metadata = GameMetadata()
+    error_count = 0
     while not game.is_solved() and not game.is_lost():
         body = f"{_serialize_game(game)}"
         if metadata.guess_error is not None:
@@ -96,9 +101,11 @@ def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False) -
         content, usage = chat.send(body)
         metadata.add_usage(usage)
 
-        guess = json.loads(content)
-        guess = guess | usage.to_dict()
+        guess = None
         try:
+            guess = json.loads(content)
+            guess = guess | usage.to_dict()
+
             result = game.check_guess(guess['guess'])
             metadata.reset_guess_error()
             guess['success'] = result is not None
@@ -108,6 +115,25 @@ def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False) -
             guess['success'] = False
             guess['invalid'] = True
             guess['invalid_reason'] = str(err)
+        except (json.JSONDecodeError, TypeError) as err:
+            error_count += 1
+            if error_count > 3:
+                raise LLMResponseError(err)
+            guess = usage.to_dict()
+            guess['success'] = False
+            guess['invalid'] = True
+            guess['invalid_reason'] = str(err)
+            metadata.add_invalid_guess(err)
+            event(
+                "Unable to parse LLM response",
+                model=model,
+                stage="guess",
+                game_date=date,
+                status="error",
+                error=type(err).__name__,
+                error_message=str(err),
+            )
+
         log_guess(date, model, guess)
 
     metadata.outcome = "solved" if game.is_solved() else "lost"
