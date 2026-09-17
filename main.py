@@ -1,4 +1,5 @@
-from llm_connections.game import Game, download_connections
+from llm_connections.game import download_connections
+
 
 def main():
     download_connections()

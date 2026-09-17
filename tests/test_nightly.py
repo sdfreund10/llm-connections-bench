@@ -1,13 +1,18 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from unittest.mock import MagicMock, patch
 
 from llm_connections import applog
 from llm_connections.log import GameAlreadyCompletedError
-from llm_connections.nightly import _get_date_range, _run_game_for_date, _sync_results, run_nightly
+from llm_connections.nightly import (
+    _get_date_range,
+    _run_game_for_date,
+    _sync_results,
+    run_nightly,
+)
 
 
 def test_get_date_range(monkeypatch):
-    fixed = datetime(2026, 9, 9, 15, 0, tzinfo=timezone.utc)
+    fixed = datetime(2026, 9, 9, 15, 0, tzinfo=UTC)
 
     class FakeDateTime(datetime):
         @classmethod

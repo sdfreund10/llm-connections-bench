@@ -1,9 +1,10 @@
 # Pull connections history from https://github.com/Eyefyre/NYT-Connections-Answers and save it locally
-import os
 import json
-import requests
+import os
 from datetime import date, datetime, timedelta
 from pathlib import Path
+
+import requests
 
 from llm_connections.applog import event
 
@@ -13,7 +14,6 @@ CONNECTIONS_FILE = os.path.join(DATA_DIR, "connections.json")
 
 class FileNotFoundError(Exception):
     """Raised when the connections file is not found."""
-    pass
 
 def _file_exists():
     file_path = Path(CONNECTIONS_FILE)
@@ -72,7 +72,6 @@ class Group:
 
 class InvalidGuessError(Exception):
     """Raised when the guess is invalid."""
-    pass
 
 class Game:
     def __init__(self, data: dict):

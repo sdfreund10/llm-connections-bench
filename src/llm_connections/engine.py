@@ -1,10 +1,11 @@
 import datetime
 import json
-from llm_connections.llm import AIChat, ChatUsage
-from llm_connections.game import Game, InvalidGuessError
-from llm_connections.log import start_run, log_guess, complete_run
-from llm_connections.telemetry import record_game
+
 from llm_connections.applog import event
+from llm_connections.game import Game, InvalidGuessError
+from llm_connections.llm import AIChat, ChatUsage
+from llm_connections.log import complete_run, log_guess, start_run
+from llm_connections.telemetry import record_game
 
 SYSTEM_PROMPT = '''
 You are trying to solve a game of Connections.

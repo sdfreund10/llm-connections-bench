@@ -1,8 +1,9 @@
-from dataclasses import dataclass
-from openrouter import OpenRouter
-from dotenv import load_dotenv
 import os
 import time
+from dataclasses import dataclass
+
+from dotenv import load_dotenv
+from openrouter import OpenRouter
 from openrouter.errors import TooManyRequestsResponseError
 
 load_dotenv()
@@ -75,7 +76,7 @@ class AIChat:
         self.messages.append({"role": "user", "content": message})
         try:
             return self._send_messages()
-        except TooManyRequestsResponseError as e:
+        except TooManyRequestsResponseError:
             print("Rate limit exceeded, resting for 30 seconds...")
             time.sleep(30)
             return self._send_messages()

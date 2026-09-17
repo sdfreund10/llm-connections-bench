@@ -8,7 +8,6 @@ from llm_connections.engine import GameMetadata, _serialize_game, run_game
 from llm_connections.game import Game
 from llm_connections.llm import ChatUsage
 
-
 SAMPLE_ANSWERS = [
     {
         "level": 0,

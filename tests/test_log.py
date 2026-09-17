@@ -5,15 +5,14 @@ import pytest
 
 from llm_connections.log import (
     GameAlreadyCompletedError,
+    _date_key,
+    _load_log,
     complete_run,
     has_completed_entry,
     list_results,
     log_guess,
     start_run,
-    _date_key,
-    _load_log,
 )
-
 
 MODEL = "openai/gpt-4.1"
 DAY = date(2026, 9, 1)
