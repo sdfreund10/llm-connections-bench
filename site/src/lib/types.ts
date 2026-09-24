@@ -13,8 +13,9 @@ export interface Puzzle {
 }
 
 export interface Guess {
-  guess: string[];
-  reasoning: string;
+  /** Four words; may be missing on older parse-error log entries. */
+  guess?: string[];
+  reasoning?: string;
   success: boolean;
   /** True when the guess was rejected (wrong size, unknown words, duplicate, etc.). */
   invalid?: boolean;

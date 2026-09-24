@@ -120,10 +120,13 @@ def run_game(date: datetime.date, model='openai/gpt-4.1', force: bool = False) -
             error_count += 1
             if error_count > 3:
                 raise LLMResponseError(err)
+            # Always include guess/reasoning so site prerender and logs stay well-formed.
             guess = usage.to_dict()
-            guess['success'] = False
-            guess['invalid'] = True
-            guess['invalid_reason'] = str(err)
+            guess["guess"] = []
+            guess["reasoning"] = ""
+            guess["success"] = False
+            guess["invalid"] = True
+            guess["invalid_reason"] = str(err)
             metadata.add_invalid_guess(err)
             event(
                 "Unable to parse LLM response",

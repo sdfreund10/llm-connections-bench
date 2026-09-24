@@ -13,7 +13,11 @@ export interface ResultBoard {
 }
 
 /** Match a correct guess to its category index in the puzzle data. */
-export function categoryIndexForGuess(puzzle: Puzzle, guess: string[]): CategoryLevel | undefined {
+export function categoryIndexForGuess(
+  puzzle: Puzzle,
+  guess: string[] | undefined,
+): CategoryLevel | undefined {
+  if (!guess?.length) return undefined;
   const sorted = [...guess].sort().join("\0");
   const idx = puzzle.answers.findIndex((group) => {
     const members = [...group.members].sort().join("\0");
@@ -28,7 +32,7 @@ export function buildResultBoard(puzzle: Puzzle, guesses: Guess[]): ResultBoard 
   const solvedRows: SolvedRow[] = [];
 
   for (const g of guesses) {
-    if (!g.success) continue;
+    if (!g.success || !g.guess?.length) continue;
     const categoryIndex = categoryIndexForGuess(puzzle, g.guess);
     if (categoryIndex === undefined) continue;
     for (const word of g.guess) unsolved.delete(word);

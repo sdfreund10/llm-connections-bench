@@ -199,6 +199,8 @@ class TestRunGame:
         first_guess = log_guess.call_args_list[0].args[2]
         assert first_guess["invalid"] is True
         assert first_guess["success"] is False
+        assert first_guess["guess"] == []
+        assert first_guess["reasoning"] == ""
         assert complete_run.call_args.kwargs["invalid_guesses"] == 1
 
     def test_records_loss_after_four_mistakes(self, log_path):
