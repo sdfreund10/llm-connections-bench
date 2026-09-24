@@ -21,7 +21,7 @@ const { summary } = Astro.props;
 
 function successCategoryIndex(
   puzzle: DateSummary["puzzle"],
-  guesses: { guess: string[]; success: boolean }[],
+  guesses: { guess?: string[]; success: boolean }[],
   idx: number,
 ): number | undefined {
   const g = guesses[idx];

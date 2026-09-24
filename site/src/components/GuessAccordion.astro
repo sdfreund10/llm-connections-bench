@@ -11,6 +11,7 @@ interface Props {
 
 const { guesses, guessIndex, groupIndex } = Astro.props;
 const guess = guesses[guessIndex];
+const words = guess.guess ?? [];
 const color =
   guess.success && groupIndex != null
     ? CATEGORY_COLORS[groupColorIndex(groupIndex)]
@@ -29,7 +30,7 @@ const hasUsage =
 <details class="guess-accordion">
   <summary class="guess-accordion__summary">
     <span class="guess-accordion__num">Guess {guessIndex + 1}</span>
-    <span class="guess-accordion__words">{guess.guess.join(" · ")}</span>
+    <span class="guess-accordion__words">{words.length ? words.join(" · ") : "—"}</span>
     {
       guess.success ? (
         <span class="guess-accordion__result guess-accordion__result--ok">Correct</span>
